@@ -38,15 +38,23 @@ func zpy(cpu *Cpu6502) {
 func abx(cpu *Cpu6502) {
 	adrL := cpu.readPc()
 	adrH := cpu.readPc()
-	cpu.amAdr = (uint16(adrH)<<8 | uint16(adrL)) + uint16(cpu.x)
+	baseAdr := uint16(adrH)<<8 | uint16(adrL)
+	cpu.amAdr = baseAdr + uint16(cpu.x)
 	cpu.amOpr = cpu.bus.CpuRead(cpu.amAdr)
+	if uint8(baseAdr>>8) != adrH {
+		cpu.clockCounter += 1
+	}
 }
 
 func aby(cpu *Cpu6502) {
 	adrL := cpu.readPc()
 	adrH := cpu.readPc()
-	cpu.amAdr = (uint16(adrH)<<8 | uint16(adrL)) + uint16(cpu.y)
+	baseAdr := uint16(adrH)<<8 | uint16(adrL)
+	cpu.amAdr = baseAdr + uint16(cpu.y)
 	cpu.amOpr = cpu.bus.CpuRead(cpu.amAdr)
+	if uint8(baseAdr>>8) != adrH {
+		cpu.clockCounter += 1
+	}
 }
 
 func imp(cpu *Cpu6502) {
@@ -69,11 +77,14 @@ func idx(cpu *Cpu6502) {
 
 func idy(cpu *Cpu6502) {
 	zAdr := cpu.readPc()
-	zAdr = zAdr + cpu.y
 	adrL := cpu.bus.CpuRead(uint16(zAdr))
 	adrH := cpu.bus.CpuRead(uint16(zAdr + 1))
-	cpu.amAdr = uint16(adrH)<<8 | uint16(adrL)
+	baseAdr := uint16(adrH)<<8 | uint16(adrL)
+	cpu.amAdr = baseAdr + uint16(cpu.y)
 	cpu.amOpr = cpu.bus.CpuRead(cpu.amAdr)
+	if uint8(cpu.amAdr>>8) != adrH {
+		cpu.clockCounter += 1
+	}
 }
 
 func ind(cpu *Cpu6502) { // JMP[IND] only
