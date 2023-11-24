@@ -1,6 +1,5 @@
 package cpu6502
 
-const irqVecL uint16 = 0xFFFE
 const lslAcc uint8 = 0x4A
 const aslAcc uint8 = 0x0A
 const rolAcc uint8 = 0x2A
@@ -101,10 +100,12 @@ func brk(cpu *Cpu6502) {
 	cpu.push(pcH)
 	pcL := uint8(cpu.pc)
 	cpu.push(pcL)
+	cpu.setFlag(I, true)
+	cpu.setFlag(B, true)
 	cpu.push(cpu.status)
 
-	pcL = cpu.bus.CpuRead(irqVecL)
-	pcH = cpu.bus.CpuRead(irqVecL + 1)
+	pcL = cpu.bus.CpuRead(irqVector)
+	pcH = cpu.bus.CpuRead(irqVector + 1)
 	cpu.pc = uint16(pcH)<<8 | uint16(pcL)
 }
 
@@ -304,6 +305,7 @@ func ror(cpu *Cpu6502) {
 
 func rti(cpu *Cpu6502) {
 	cpu.status = cpu.pop()
+	cpu.setFlag(B, false)
 	pcL := cpu.pop()
 	pcH := cpu.pop()
 	cpu.pc = uint16(pcH)<<8 | uint16(pcL)

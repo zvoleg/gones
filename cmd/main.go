@@ -6,7 +6,8 @@ import (
 )
 
 func main() {
+	cpuInterruptLine := make(chan cpu6502.Interrupt, 3)
 	bus := &bus.Bus{}
-	cpu := cpu6502.New(bus)
+	cpu := cpu6502.New(bus, cpuInterruptLine)
 	cpu.Clock()
 }
