@@ -1,14 +1,14 @@
 package cpu6502
 
 type instruction struct {
-	opcode  uint8
+	opcode  byte
 	name    string
 	am      func(*Cpu6502)
 	handler func(*Cpu6502)
 	clocks  uint
 }
 
-func inst(opcode uint8, name string, am func(*Cpu6502), handler func(*Cpu6502), clocks uint) instruction {
+func inst(opcode byte, name string, am func(*Cpu6502), handler func(*Cpu6502), clocks uint) instruction {
 	return instruction{
 		opcode,
 		name,

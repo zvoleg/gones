@@ -1,14 +1,14 @@
 package cpu6502
 
-const lslAcc uint8 = 0x4A
-const aslAcc uint8 = 0x0A
-const rolAcc uint8 = 0x2A
-const rorAcc uint8 = 0x6A
+const lslAcc byte = 0x4A
+const aslAcc byte = 0x0A
+const rolAcc byte = 0x2A
+const rorAcc byte = 0x6A
 
-func add(a, b uint8) (res uint8, carry bool, overflow bool) {
+func add(a, b byte) (res byte, carry bool, overflow bool) {
 	sum := uint16(a) + uint16(b)
 
-	res = uint8(sum)
+	res = byte(sum)
 	carry = sum&0x100 != 0
 	overflow = (a&0x80 == b&0x80) && res&0x80 != a&0x80
 	return res, carry, overflow
@@ -96,9 +96,9 @@ func bpl(cpu *Cpu6502) {
 }
 
 func brk(cpu *Cpu6502) {
-	pcH := uint8(cpu.pc >> 8)
+	pcH := byte(cpu.pc >> 8)
 	cpu.push(pcH)
-	pcL := uint8(cpu.pc)
+	pcL := byte(cpu.pc)
 	cpu.push(pcL)
 	cpu.setFlag(I, true)
 	cpu.setFlag(B, true)
@@ -208,9 +208,9 @@ func jmp(cpu *Cpu6502) {
 }
 
 func jsr(cpu *Cpu6502) {
-	pcH := uint8(cpu.pc >> 8)
+	pcH := byte(cpu.pc >> 8)
 	cpu.push(pcH)
-	pcL := uint8(cpu.pc)
+	pcL := byte(cpu.pc)
 	cpu.push(pcL)
 	cpu.pc = cpu.amAdr
 }

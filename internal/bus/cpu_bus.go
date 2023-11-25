@@ -1,7 +1,7 @@
 package bus
 
-func (bus *Bus) CpuRead(address uint16) uint8 {
-	var data uint8 = 0
+func (bus *Bus) CpuRead(address uint16) byte {
+	var data byte = 0
 	if address <= 0x1FFF {
 		data = bus.ram[address&0x07FF]
 	} else if address >= 0x2000 && address <= 0x3FFF { // PPU registers
@@ -12,7 +12,7 @@ func (bus *Bus) CpuRead(address uint16) uint8 {
 	return data
 }
 
-func (bus *Bus) CpuWrite(address uint16, data uint8) {
+func (bus *Bus) CpuWrite(address uint16, data byte) {
 	if address <= 0x1FFF {
 		bus.ram[address&0x07FFF] = data
 	} else if address >= 0x4020 {

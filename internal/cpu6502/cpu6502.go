@@ -3,8 +3,8 @@ package cpu6502
 import "fmt"
 
 type Bus6502 interface {
-	CpuRead(address uint16) uint8
-	CpuWrite(address uint16, data uint8)
+	CpuRead(address uint16) byte
+	CpuWrite(address uint16, data byte)
 }
 
 const nmiVector uint16 = 0xFFFA
@@ -20,17 +20,17 @@ const (
 )
 
 type Cpu6502 struct {
-	a uint8
-	x uint8
-	y uint8
+	a byte
+	x byte
+	y byte
 
 	pc     uint16
-	s      uint8
-	status uint8
+	s      byte
+	status byte
 
-	opcode uint8
+	opcode byte
 	amAdr  uint16
-	amOpr  uint8
+	amOpr  byte
 
 	bus             Bus6502
 	interruptSignal chan Interrupt
@@ -61,11 +61,13 @@ func (cpu *Cpu6502) Clock() {
 	}
 	opcode := cpu.readPc()
 	instr := instructionTable[opcode]
-	fmt.Println(instr.name)
+	fmt.Println(cpu.pc, opcode, instr.name)
 	cpu.opcode = opcode
 	cpu.clockCounter = instr.clocks
 	instr.am(cpu)
 	instr.handler(cpu)
+	clocks := clock{cpu.clockCounter}
+	clocks.waitExecution()
 }
 
 func (cpu *Cpu6502) reset() {
@@ -78,9 +80,9 @@ func (cpu *Cpu6502) reset() {
 
 func (cpu *Cpu6502) interrupt(vector uint16) {
 	// save cpu backup on the stack
-	pcH := uint8(cpu.pc >> 8)
+	pcH := byte(cpu.pc >> 8)
 	cpu.push(pcH)
-	pcL := uint8(cpu.pc)
+	pcL := byte(cpu.pc)
 	cpu.push(pcL)
 	cpu.setFlag(B, false)
 	cpu.push(cpu.status)
@@ -95,19 +97,19 @@ func (cpu *Cpu6502) incrementPc() {
 	cpu.pc += 1
 }
 
-func (cpu *Cpu6502) readPc() uint8 {
+func (cpu *Cpu6502) readPc() byte {
 	data := cpu.bus.CpuRead(cpu.pc)
 	cpu.incrementPc()
 	return data
 }
 
-func (cpu *Cpu6502) getFlag(f flag) uint8 {
+func (cpu *Cpu6502) getFlag(f flag) byte {
 	bit := cpu.status & 1 << f
 	return bit >> f
 }
 
 func (cpu *Cpu6502) setFlag(f flag, set bool) {
-	var mask uint8 = 1 << f
+	var mask byte = 1 << f
 	if set {
 		cpu.status |= mask
 	} else {
@@ -115,12 +117,12 @@ func (cpu *Cpu6502) setFlag(f flag, set bool) {
 	}
 }
 
-func (cpu *Cpu6502) push(data uint8) {
+func (cpu *Cpu6502) push(data byte) {
 	cpu.bus.CpuWrite(0x0100|uint16(cpu.s), data)
 	cpu.s -= 1
 }
 
-func (cpu *Cpu6502) pop() uint8 {
+func (cpu *Cpu6502) pop() byte {
 	cpu.s += 1
 	return cpu.bus.CpuRead(0x0100 | uint16(cpu.s))
 }

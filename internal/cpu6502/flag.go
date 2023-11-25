@@ -1,6 +1,6 @@
 package cpu6502
 
-type flag uint8
+type flag byte
 
 const (
 	C flag = iota

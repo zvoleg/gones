@@ -41,7 +41,7 @@ func abx(cpu *Cpu6502) {
 	baseAdr := uint16(adrH)<<8 | uint16(adrL)
 	cpu.amAdr = baseAdr + uint16(cpu.x)
 	cpu.amOpr = cpu.bus.CpuRead(cpu.amAdr)
-	if uint8(baseAdr>>8) != adrH {
+	if byte(baseAdr>>8) != adrH {
 		cpu.clockCounter += 1
 	}
 }
@@ -52,7 +52,7 @@ func aby(cpu *Cpu6502) {
 	baseAdr := uint16(adrH)<<8 | uint16(adrL)
 	cpu.amAdr = baseAdr + uint16(cpu.y)
 	cpu.amOpr = cpu.bus.CpuRead(cpu.amAdr)
-	if uint8(baseAdr>>8) != adrH {
+	if byte(baseAdr>>8) != adrH {
 		cpu.clockCounter += 1
 	}
 }
@@ -62,7 +62,10 @@ func imp(cpu *Cpu6502) {
 }
 
 func rel(cpu *Cpu6502) {
-	offset := cpu.readPc()
+	offset := uint16(cpu.readPc())
+	if offset&0x80 != 0 {
+		offset = 0xFF00 | offset
+	}
 	cpu.amAdr = cpu.pc + uint16(offset)
 }
 
@@ -82,7 +85,7 @@ func idy(cpu *Cpu6502) {
 	baseAdr := uint16(adrH)<<8 | uint16(adrL)
 	cpu.amAdr = baseAdr + uint16(cpu.y)
 	cpu.amOpr = cpu.bus.CpuRead(cpu.amAdr)
-	if uint8(cpu.amAdr>>8) != adrH {
+	if byte(cpu.amAdr>>8) != adrH {
 		cpu.clockCounter += 1
 	}
 }

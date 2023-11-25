@@ -54,20 +54,20 @@ func getMapper(header header, nesFile []byte) mapper {
 	return mapp
 }
 
-func (c *Cartridge) ReadPrgRom(address uint16) uint8 {
+func (c *Cartridge) ReadPrgRom(address uint16) byte {
 	mappedAddress := c.mapper.prgAddress(address)
 	return c.prgRom[mappedAddress]
 }
 
-func (c *Cartridge) ReadChrRom(address uint16) uint8 {
+func (c *Cartridge) ReadChrRom(address uint16) byte {
 	mappedAddress := c.mapper.chrAddress(address)
 	return c.chrRom[mappedAddress]
 }
 
-func (c *Cartridge) WritePrgRom(address uint16, data uint8) {
+func (c *Cartridge) WritePrgRom(address uint16, data byte) {
 	// mappedAddress := c.mapper.prgAddress(address)
 }
 
-func (c *Cartridge) WriteChrRom(address uint16, data uint8) {
+func (c *Cartridge) WriteChrRom(address uint16, data byte) {
 	// mappedAddress := c.mapper.prgAddress(address)
 }
