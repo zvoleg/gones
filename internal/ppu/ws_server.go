@@ -1,7 +1,6 @@
 package ppu
 
 import (
-	"encoding/base64"
 	"fmt"
 	"math/rand"
 
@@ -19,6 +18,7 @@ func NewServer() *Server {
 func (s *Server) Handler(ws *websocket.Conn) {
 	fmt.Println("Connection with client: ", ws.RemoteAddr())
 	s.ws = ws
+	s.ws.PayloadType = websocket.BinaryFrame
 	s.writeLoop()
 }
 
@@ -33,7 +33,7 @@ func (s *Server) writeLoop() {
 			imgBuf[i+2] = dot * 255
 			imgBuf[i+3] = 255
 		}
-		data := base64.StdEncoding.EncodeToString(imgBuf)
-		s.ws.Write([]byte(data))
+		// data := base64.StdEncoding.EncodeToString(imgBuf)
+		s.ws.Write([]byte(imgBuf))
 	}
 }
