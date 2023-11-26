@@ -5,7 +5,10 @@ func (bus *Bus) CpuRead(address uint16) byte {
 	if address <= 0x1FFF {
 		data = bus.ram[address&0x07FF]
 	} else if address >= 0x2000 && address <= 0x3FFF { // PPU registers
-		// address & 0x7
+		address = address & 0x7
+		if address == 2 {
+			data = bus.statusReg.Read()
+		}
 	} else if address >= 0x4020 {
 		data = bus.rom.ReadPrgRom(address)
 	}

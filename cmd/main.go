@@ -24,7 +24,9 @@ func main() {
 
 	cpuInterruptLine := make(chan cpu6502.Interrupt, 3)
 	cartridge := cartridge.New("./gal.nes")
-	bus := bus.New(&cartridge)
+	ppu := ppu.NewPpu()
+	bus := bus.New(&cartridge, &ppu)
+	ppu.InitBus(&bus)
 	cpu := cpu6502.New(&bus, cpuInterruptLine)
 	wg.Add(1)
 	go func() {

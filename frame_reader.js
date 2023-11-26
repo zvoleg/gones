@@ -1,6 +1,6 @@
 const canvas = document.getElementById("frame");
 const ctx = canvas.getContext("2d");
-ctx.scale(2, 2);
+ctx.scale(3, 3);
 
 var socket = new WebSocket("ws://localhost:3000/nes");
 socket.binaryType = "arraybuffer";
