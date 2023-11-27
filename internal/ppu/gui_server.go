@@ -7,22 +7,22 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-type Server struct {
+type GuiServer struct {
 	ws *websocket.Conn
 }
 
-func NewServer() *Server {
-	return &Server{ws: nil}
+func NewServer() *GuiServer {
+	return &GuiServer{ws: nil}
 }
 
-func (s *Server) Handler(ws *websocket.Conn) {
+func (s *GuiServer) Handler(ws *websocket.Conn) {
 	fmt.Println("Connection with client: ", ws.RemoteAddr())
 	s.ws = ws
 	s.ws.PayloadType = websocket.BinaryFrame
 	s.writeLoop()
 }
 
-func (s *Server) writeLoop() {
+func (s *GuiServer) writeLoop() {
 	for {
 		imgSize := 256 * 244
 		var imgBuf []byte = make([]byte, imgSize*4)

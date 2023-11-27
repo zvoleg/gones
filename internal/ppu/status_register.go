@@ -17,5 +17,9 @@ func (r *StatusReg) Read() byte {
 }
 
 func (r *StatusReg) setStatusFlag(f flag, set bool) {
-
+	if set {
+		r.value |= byte(f)
+	} else {
+		r.value &= ^byte(f)
+	}
 }

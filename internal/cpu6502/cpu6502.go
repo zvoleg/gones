@@ -1,5 +1,7 @@
 package cpu6502
 
+import "fmt"
+
 type Bus6502 interface {
 	CpuRead(address uint16) byte
 	CpuWrite(address uint16, data byte)
@@ -42,24 +44,24 @@ func New(bus Bus6502, interruptLine chan Interrupt) Cpu6502 {
 }
 
 func (cpu *Cpu6502) Clock() {
-	if cpu.getFlag(I) == 1 {
-		select {
-		case interrupt := <-cpu.interruptSignal:
-			switch interrupt {
-			case Nmi:
-				cpu.interrupt(nmiVector)
-			case Irq:
+	select {
+	case interrupt := <-cpu.interruptSignal:
+		switch interrupt {
+		case Nmi:
+			cpu.interrupt(nmiVector)
+		case Irq:
+			if cpu.getFlag(I) == 0 {
 				cpu.interrupt(irqVector)
-			case Res:
-				cpu.reset()
 			}
-			return
-		default:
+		case Res:
+			cpu.reset()
 		}
+		return
+	default:
 	}
 	opcode := cpu.readPc()
 	instr := instructionTable[opcode]
-	// fmt.Println(cpu.pc, opcode, instr.name)
+	fmt.Println(cpu.pc, opcode, instr.name)
 	cpu.opcode = opcode
 	cpu.clockCounter = instr.clocks
 	instr.am(cpu)
@@ -73,7 +75,7 @@ func (cpu *Cpu6502) reset() {
 	pcL := cpu.bus.CpuRead(resVector)
 	pcH := cpu.bus.CpuRead(resVector + 1)
 	cpu.pc = uint16(pcH)<<8 | uint16(pcL)
-	cpu.s = 0x34 // set flags U, B, Iconst irqVecL uint16 = 0xFFFE
+	cpu.status = 0x34 // set flags U, B, Iconst irqVecL uint16 = 0xFFFE
 }
 
 func (cpu *Cpu6502) interrupt(vector uint16) {
@@ -89,6 +91,8 @@ func (cpu *Cpu6502) interrupt(vector uint16) {
 	pcL = cpu.bus.CpuRead(vector)
 	pcH = cpu.bus.CpuRead(vector + 1)
 	cpu.pc = uint16(pcH)<<8 | uint16(pcL)
+	clocks := clock{7}
+	clocks.waitExecution()
 }
 
 func (cpu *Cpu6502) incrementPc() {
