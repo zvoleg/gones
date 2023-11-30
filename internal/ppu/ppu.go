@@ -24,11 +24,18 @@ type PpuBus interface {
 }
 
 type Ppu struct {
-	ControllReg   *ControllReg
-	MaskReg       *MaskReg
-	StatusReg     *StatusReg
-	OamAddressReg *OamAddressReg
-	OamDataReg    *OamDataReg
+	patternTable [0x2000]byte
+	nameTable    [0x1000]byte
+	paletteRam   [0x0020]byte
+	sram         [0x100]byte
+
+	controllReg     *controllReg
+	maskReg         *maskReg
+	statusReg       *statusReg
+	oamAddressReg   *oamAddressReg
+	oamDataReg      *oamDataReg
+	scrollRegister  *scrollRegister
+	addressRegister *addressRegister
 
 	bus           PpuBus
 	interruptLine chan cpu6502.Interrupt
@@ -38,22 +45,27 @@ type Ppu struct {
 }
 
 func NewPpu(interruptLine chan cpu6502.Interrupt) Ppu {
-	controllReg := ControllReg{}
-	maskReg := MaskReg{}
-	statusReg := StatusReg{}
-	oamAddressReg := OamAddressReg{}
-	oamDataReg := OamDataReg{}
+	latch := false // scroll reg and address reg latch (selects LSB and HSB)
+	controllReg := controllReg{}
+	maskReg := maskReg{}
+	statusReg := statusReg{latch: &latch}
+	oamAddressReg := oamAddressReg{}
+	oamDataReg := oamDataReg{}
+	scrollReg := scrollRegister{latch: &latch}
+	addressReg := addressRegister{latch: &latch}
 
 	return Ppu{
-		ControllReg:   &controllReg,
-		MaskReg:       &maskReg,
-		StatusReg:     &statusReg,
-		OamAddressReg: &oamAddressReg,
-		OamDataReg:    &oamDataReg,
-		bus:           nil,
-		interruptLine: interruptLine,
-		evenFrame:     false,
-		clockCounter:  0,
+		controllReg:     &controllReg,
+		maskReg:         &maskReg,
+		statusReg:       &statusReg,
+		oamAddressReg:   &oamAddressReg,
+		oamDataReg:      &oamDataReg,
+		scrollRegister:  &scrollReg,
+		addressRegister: &addressReg,
+		bus:             nil,
+		interruptLine:   interruptLine,
+		evenFrame:       false,
+		clockCounter:    0,
 	}
 }
 
@@ -74,16 +86,16 @@ func (ppu *Ppu) Clock() {
 	line := getLineType(lineNum)
 
 	if line == Visible || line == PreRender && dotNum >= 257 && dotNum <= 320 {
-		ppu.OamAddressReg.value = 0
+		ppu.oamAddressReg.value = 0
 	}
 	if lineNum == 241 && dotNum == 1 {
-		ppu.StatusReg.setStatusFlag(V, true)
+		ppu.statusReg.setStatusFlag(V, true)
 		ppu.interruptLine <- cpu6502.Nmi
 	}
 	if lineNum == 261 && dotNum == 1 {
-		ppu.StatusReg.setStatusFlag(V, false)
-		ppu.StatusReg.setStatusFlag(S, false)
-		ppu.StatusReg.setStatusFlag(O, false)
+		ppu.statusReg.setStatusFlag(V, false)
+		ppu.statusReg.setStatusFlag(S, false)
+		ppu.statusReg.setStatusFlag(O, false)
 	}
 	if ppu.clockCounter > 89342 {
 		ppu.clockCounter = 0

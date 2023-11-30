@@ -61,11 +61,12 @@ func (cpu *Cpu6502) Clock() {
 	}
 	opcode := cpu.readPc()
 	instr := instructionTable[opcode]
-	fmt.Println(cpu.pc, opcode, instr.name)
+	log := fmt.Sprintf("pc:%X opcode:%X\t%s", cpu.pc, opcode, instr.name)
 	cpu.opcode = opcode
 	cpu.clockCounter = instr.clocks
 	instr.am(cpu)
 	instr.handler(cpu)
+	fmt.Printf("%s addr:%X opr:%X\n", log, cpu.amAdr, cpu.amOpr)
 	clocks := clock{cpu.clockCounter}
 	clocks.waitExecution()
 }

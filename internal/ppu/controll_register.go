@@ -1,14 +1,14 @@
 package ppu
 
-type ControllReg struct {
+type controllReg struct {
 	value byte
 }
 
-func (r *ControllReg) Write(value byte) {
+func (r *controllReg) write(value byte) {
 	r.value = value
 }
 
-func (r *ControllReg) getBaseNameTableAddress() uint16 {
+func (r *controllReg) getBaseNameTableAddress() uint16 {
 	var address uint16
 	switch r.value & 0x3 {
 	case 0:
@@ -23,7 +23,7 @@ func (r *ControllReg) getBaseNameTableAddress() uint16 {
 	return address
 }
 
-func (r *ControllReg) getVramIncrement() int {
+func (r *controllReg) getVramIncrement() int {
 	var increment int
 	switch (r.value >> 2) & 0x1 {
 	case 0:
@@ -34,7 +34,7 @@ func (r *ControllReg) getVramIncrement() int {
 	return increment
 }
 
-func (r *ControllReg) getSpriteTableAddress() uint16 {
+func (r *controllReg) getSpriteTableAddress() uint16 {
 	var address uint16
 	switch (r.value >> 3) & 0x1 {
 	case 0:
@@ -45,7 +45,7 @@ func (r *ControllReg) getSpriteTableAddress() uint16 {
 	return address
 }
 
-func (r *ControllReg) getBackgroundTableAddress() uint16 {
+func (r *controllReg) getBackgroundTableAddress() uint16 {
 	var address uint16
 	switch (r.value >> 4) & 0x1 {
 	case 0:
@@ -56,7 +56,7 @@ func (r *ControllReg) getBackgroundTableAddress() uint16 {
 	return address
 }
 
-func (r *ControllReg) getSpriteSize() int {
+func (r *controllReg) getSpriteSize() int {
 	var size int
 	switch (r.value >> 5) & 0x1 {
 	case 0:
@@ -67,6 +67,6 @@ func (r *ControllReg) getSpriteSize() int {
 	return size
 }
 
-func (r *ControllReg) generateNmiOnVb() bool {
+func (r *controllReg) generateNmiOnVb() bool {
 	return (r.value & 0x80) == 1
 }

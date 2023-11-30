@@ -8,15 +8,17 @@ const (
 	V = 0x80
 )
 
-type StatusReg struct {
+type statusReg struct {
 	value byte
+	latch *bool
 }
 
-func (r *StatusReg) Read() byte {
+func (r *statusReg) read() byte {
+	*r.latch = false
 	return r.value
 }
 
-func (r *StatusReg) setStatusFlag(f flag, set bool) {
+func (r *statusReg) setStatusFlag(f flag, set bool) {
 	if set {
 		r.value |= byte(f)
 	} else {

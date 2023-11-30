@@ -1,30 +1,30 @@
 package ppu
 
-type MaskReg struct {
+type maskReg struct {
 	value byte
 }
 
-func (r *MaskReg) Write(value byte) {
+func (r *maskReg) write(value byte) {
 	r.value = value
 }
 
-func (r *MaskReg) grayscaleDisplayEnabled() bool {
+func (r *maskReg) grayscaleDisplayEnabled() bool {
 	return (r.value & 0x1) == 1
 }
 
-func (r *MaskReg) leftBackgroundEnabled() bool {
+func (r *maskReg) leftBackgroundEnabled() bool {
 	return (r.value & 0x2) != 0
 }
 
-func (r *MaskReg) leftSpritesEnabled() bool {
+func (r *maskReg) leftSpritesEnabled() bool {
 	return (r.value & 0x4) != 0
 }
 
-func (r *MaskReg) backgroundEnabled() bool {
+func (r *maskReg) backgroundEnabled() bool {
 	return (r.value & 0x8) != 0
 }
 
-func (r *MaskReg) spritesEnabled() bool {
+func (r *maskReg) spritesEnabled() bool {
 	return (r.value & 0x10) != 0
 }
 
