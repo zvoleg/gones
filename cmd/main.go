@@ -22,8 +22,8 @@ func main() {
 		http.ListenAndServe(":3000", nil)
 	}()
 
-	cpuInterruptLine := make(chan cpu6502.Interrupt, 3)
-	cartridge := cartridge.New("./gal.nes")
+	cpuInterruptLine := make(chan cpu6502.Signal, 3)
+	cartridge := cartridge.New("./smb.nes")
 	ppu := ppu.NewPpu(cpuInterruptLine)
 	bus := bus.New(&cartridge, &ppu)
 	ppu.InitBus(&bus)

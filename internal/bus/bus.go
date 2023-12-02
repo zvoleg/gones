@@ -7,18 +7,19 @@ type Cartridge interface {
 	WriteChrRom(address uint16, data byte)
 }
 
-type PpuRegisterMap interface {
+type PpuExposedInterface interface {
 	RegisterRead(regAddress uint16) byte
 	RegisterWrite(regAddress uint16, data byte)
+	InitDma(page byte)
 }
 
 type Bus struct {
 	ram            [0x0800]byte
 	rom            Cartridge
-	ppuRegisterMap PpuRegisterMap
+	ppuRegisterMap PpuExposedInterface
 }
 
-func New(rom Cartridge, ppuRegisterMap PpuRegisterMap) Bus {
+func New(rom Cartridge, ppuRegisterMap PpuExposedInterface) Bus {
 	return Bus{
 		rom:            rom,
 		ppuRegisterMap: ppuRegisterMap,

@@ -21,6 +21,7 @@ const (
 type PpuBus interface {
 	PpuRead(address uint16) byte
 	PpuWrite(address uint16, data byte)
+	ReadDmaByte(address uint16) byte
 }
 
 type Ppu struct {
@@ -38,13 +39,14 @@ type Ppu struct {
 	addressRegister *addressRegister
 
 	bus           PpuBus
-	interruptLine chan cpu6502.Interrupt
+	cpuSignalLine chan cpu6502.Signal
 
+	dmaEnabled   bool
 	evenFrame    bool
 	clockCounter int
 }
 
-func NewPpu(interruptLine chan cpu6502.Interrupt) Ppu {
+func NewPpu(interruptLine chan cpu6502.Signal) Ppu {
 	latch := false // scroll reg and address reg latch (selects LSB and HSB)
 	controllReg := controllReg{}
 	maskReg := maskReg{}
@@ -63,7 +65,7 @@ func NewPpu(interruptLine chan cpu6502.Interrupt) Ppu {
 		scrollRegister:  &scrollReg,
 		addressRegister: &addressReg,
 		bus:             nil,
-		interruptLine:   interruptLine,
+		cpuSignalLine:   interruptLine,
 		evenFrame:       false,
 		clockCounter:    0,
 	}
@@ -76,6 +78,9 @@ func (ppu *Ppu) InitBus(bus PpuBus) {
 func (ppu *Ppu) Clock() {
 	executionTimeNs := clockTimeNs * float64(time.Nanosecond)
 	time.Sleep(time.Duration(executionTimeNs))
+	if ppu.dmaEnabled {
+		ppu.DmaClock()
+	}
 	if ppu.clockCounter == 0 && !ppu.evenFrame {
 		ppu.clockCounter += 1
 		return
@@ -90,7 +95,7 @@ func (ppu *Ppu) Clock() {
 	}
 	if lineNum == 241 && dotNum == 1 {
 		ppu.statusReg.setStatusFlag(V, true)
-		ppu.interruptLine <- cpu6502.Nmi
+		ppu.cpuSignalLine <- cpu6502.Nmi
 	}
 	if lineNum == 261 && dotNum == 1 {
 		ppu.statusReg.setStatusFlag(V, false)

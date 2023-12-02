@@ -1,11 +1,11 @@
 package ppu
 
 type oamAddressReg struct {
-	value byte
+	value uint16
 }
 
 func (r *oamAddressReg) write(value byte) {
-	r.value = value
+	r.value = uint16(value) << 8
 }
 
 func (r *oamAddressReg) increment() {

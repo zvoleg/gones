@@ -11,12 +11,14 @@ const nmiVector uint16 = 0xFFFA
 const resVector uint16 = 0xFFFC
 const irqVector uint16 = 0xFFFE
 
-type Interrupt int
+type Signal int
 
 const (
-	Irq Interrupt = iota
+	Irq Signal = iota
 	Nmi
 	Res
+	DmaEnable
+	DmaDisable
 )
 
 type Cpu6502 struct {
@@ -32,21 +34,22 @@ type Cpu6502 struct {
 	amAdr  uint16
 	amOpr  byte
 
-	bus             Bus6502
-	interruptSignal chan Interrupt
-	clockCounter    uint
+	bus          Bus6502
+	signalLine   chan Signal
+	dmaEnabled   bool
+	clockCounter uint
 }
 
-func New(bus Bus6502, interruptLine chan Interrupt) Cpu6502 {
-	cpu := Cpu6502{bus: bus, interruptSignal: interruptLine}
+func New(bus Bus6502, interruptLine chan Signal) Cpu6502 {
+	cpu := Cpu6502{bus: bus, signalLine: interruptLine}
 	cpu.reset()
 	return cpu
 }
 
 func (cpu *Cpu6502) Clock() {
 	select {
-	case interrupt := <-cpu.interruptSignal:
-		switch interrupt {
+	case signal := <-cpu.signalLine:
+		switch signal {
 		case Nmi:
 			cpu.interrupt(nmiVector)
 		case Irq:
@@ -55,18 +58,25 @@ func (cpu *Cpu6502) Clock() {
 			}
 		case Res:
 			cpu.reset()
+		case DmaEnable:
+			cpu.dmaEnabled = true
+		case DmaDisable:
+			cpu.dmaEnabled = false
 		}
-		return
 	default:
 	}
+	if cpu.dmaEnabled {
+		return
+	}
+
 	opcode := cpu.readPc()
 	instr := instructionTable[opcode]
-	log := fmt.Sprintf("pc:%X opcode:%X\t%s", cpu.pc, opcode, instr.name)
+	log := fmt.Sprintf("pc:%04X opcode:%02X\t%s", cpu.pc, opcode, instr.name)
 	cpu.opcode = opcode
 	cpu.clockCounter = instr.clocks
 	instr.am(cpu)
 	instr.handler(cpu)
-	fmt.Printf("%s addr:%X opr:%X\n", log, cpu.amAdr, cpu.amOpr)
+	fmt.Printf("%s addr:%04X opr:%02X\n", log, cpu.amAdr, cpu.amOpr)
 	clocks := clock{cpu.clockCounter}
 	clocks.waitExecution()
 }

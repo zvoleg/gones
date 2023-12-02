@@ -19,6 +19,8 @@ func (bus *Bus) CpuWrite(address uint16, data byte) {
 	} else if address >= 2000 && address <= 0x3FFF { // PPU registers
 		address = address & 0x7
 		bus.ppuRegisterMap.RegisterWrite(address, data)
+	} else if address == 0x4014 {
+		bus.ppuRegisterMap.InitDma(data)
 	} else if address >= 0x4020 {
 		bus.rom.WritePrgRom(address, data)
 	}
