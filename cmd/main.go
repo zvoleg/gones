@@ -13,21 +13,23 @@ import (
 
 func main() {
 	wg := sync.WaitGroup{}
+
+	cpuInterruptLine := make(chan cpu6502.Signal, 3)
+	cartridge := cartridge.New("./smb.nes")
+	ppuEmu := ppu.NewPpu(cpuInterruptLine)
+	bus := bus.New(&cartridge, &ppuEmu)
+	ppuEmu.InitBus(&bus)
+	cpu := cpu6502.New(&bus, cpuInterruptLine)
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 
-		server := ppu.NewServer()
-		http.Handle("/nes", websocket.Handler(server.Handler))
+		server := ppu.NewServer(&ppuEmu)
+		http.Handle("/frame", websocket.Handler(server.Handler))
+		http.Handle("/pattern", websocket.Handler(server.Handler))
 		http.ListenAndServe(":3000", nil)
 	}()
-
-	cpuInterruptLine := make(chan cpu6502.Signal, 3)
-	cartridge := cartridge.New("./smb.nes")
-	ppu := ppu.NewPpu(cpuInterruptLine)
-	bus := bus.New(&cartridge, &ppu)
-	ppu.InitBus(&bus)
-	cpu := cpu6502.New(&bus, cpuInterruptLine)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -40,7 +42,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		for {
-			ppu.Clock()
+			ppuEmu.Clock()
 		}
 	}()
 

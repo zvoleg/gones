@@ -32,7 +32,7 @@ func (ppu *Ppu) RegisterWrite(regAddress uint16, data byte) {
 		fmt.Printf("Write into VRAM, address: %04X\n", address)
 		switch true {
 		case address <= 0x1FFF:
-			ppu.patternTable[address] = data
+			ppu.bus.PpuWrite(address, data)
 		case address >= 0x2000 && address <= 0x3EFF:
 			address = address & 0x1FFF
 			ppu.nameTable[address] = data

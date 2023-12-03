@@ -1,5 +1,7 @@
 package cartridge
 
+import "fmt"
+
 type Map000 struct {
 	header header
 }
@@ -20,5 +22,9 @@ func (m *Map000) prgAddress(address uint16) uint16 {
 }
 
 func (m *Map000) chrAddress(address uint16) uint16 {
+	if address < 0x2000 {
+		return address
+	}
+	fmt.Println("Unexpected chrom address ", address)
 	return 0
 }

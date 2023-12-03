@@ -1,7 +1,7 @@
 package bus
 
 func (bus *Bus) PpuRead(address uint16) byte {
-	return 0
+	return bus.rom.ReadChrRom(address)
 }
 
 func (bus *Bus) PpuWrite(address uint16, data byte) {

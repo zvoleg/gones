@@ -1,26 +1,37 @@
-const canvas = document.getElementById("frame");
-const ctx = canvas.getContext("2d");
-ctx.scale(3, 3);
+var frameSocket = new WebSocket("ws://localhost:3000/frame");
+frameSocket.binaryType = "arraybuffer";
+var patternSocket = new WebSocket("ws://localhost:3000/pattern");
+patternSocket.binaryType = "arraybuffer";
 
-var socket = new WebSocket("ws://localhost:3000/nes");
-socket.binaryType = "arraybuffer";
+setupSocketAndCanvas(frameSocket, "frame", 256, 244, 3)
+setupSocketAndCanvas(patternSocket, "pattern", 256, 128, 3)
 
-socket.onmessage = function(event) {
-    var imgData = new Uint8ClampedArray(event.data);
-    var image = ctx.createImageData(256,244);
-    for (var i = 0; i < image.data.length; i += 1) {
-        image.data[i] = imgData[i];
-    }
-    var resizeWidth = 512;
-    var resizeHeight = 488;
+function setupSocketAndCanvas(socket, canvasName, width, height, scale) {
+  const canvas = document.getElementById(canvasName);
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
 
-    Promise.all([
-        createImageBitmap(image)
-      ]).then((img) => {
-        ctx.drawImage(img[0], 0, 0);
-      });
-}
+  socket.onopen = () => {
+    socket.send(canvasName)
+  }
 
-socket.onerror = function(err) {
-    console.log(err)
+  socket.onmessage = (event) => {
+      var imgData = new Uint8ClampedArray(event.data);
+      var image = ctx.createImageData(width, height);
+      for (var i = 0; i < image.data.length; i += 1) {
+          image.data[i] = imgData[i];
+      }
+      var resizeWidth = width * scale;
+      var resizeHeight = height * scale;
+
+      Promise.all([
+          createImageBitmap(image)
+        ]).then((img) => {
+          ctx.drawImage(img[0], 0, 0);
+        });
+  }
+
+  socket.onerror = (err) => {
+      console.log(err)
+  }
 }

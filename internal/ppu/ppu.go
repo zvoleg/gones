@@ -25,10 +25,9 @@ type PpuBus interface {
 }
 
 type Ppu struct {
-	patternTable [0x2000]byte
-	nameTable    [0x1000]byte
-	paletteRam   [0x0020]byte
-	sram         [0x100]byte
+	nameTable  [0x1000]byte
+	paletteRam [0x0020]byte
+	sram       [0x100]byte
 
 	controllReg     *controllReg
 	maskReg         *maskReg

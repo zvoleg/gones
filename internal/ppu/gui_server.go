@@ -7,22 +7,48 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-type GuiServer struct {
-	ws *websocket.Conn
+const (
+	frame       = "frame"
+	patterTable = "pattern"
+	collor      = "collor"
+)
+
+type ImageProducer interface {
+	GetMainScreen() []byte
+	GetPatternTables() []byte
+	GetCollorPallete() []byte
 }
 
-func NewServer() *GuiServer {
-	return &GuiServer{ws: nil}
+type GuiServer struct {
+	imageProducer ImageProducer
+}
+
+func NewServer(imageProducer ImageProducer) *GuiServer {
+	return &GuiServer{imageProducer: imageProducer}
 }
 
 func (s *GuiServer) Handler(ws *websocket.Conn) {
 	fmt.Println("Connection with client: ", ws.RemoteAddr())
-	s.ws = ws
-	s.ws.PayloadType = websocket.BinaryFrame
-	s.writeLoop()
+	s.connectionHandler(ws)
 }
 
-func (s *GuiServer) writeLoop() {
+func (s *GuiServer) connectionHandler(ws *websocket.Conn) {
+	buffer := make([]byte, 64)
+	n, err := ws.Read(buffer)
+	if err != nil {
+		fmt.Println("Can't read message from client")
+	}
+	ws.PayloadType = websocket.BinaryFrame
+	guiPart := string(buffer[:n])
+	switch guiPart {
+	case frame:
+		s.frameSender(ws)
+	case patterTable:
+		s.patternTableSender(ws)
+	}
+}
+
+func (s *GuiServer) frameSender(ws *websocket.Conn) {
 	for {
 		imgSize := 256 * 244
 		var imgBuf []byte = make([]byte, imgSize*4)
@@ -33,6 +59,16 @@ func (s *GuiServer) writeLoop() {
 			imgBuf[i+2] = dot * byte(rand.Intn(256))
 			imgBuf[i+3] = 255
 		}
-		s.ws.Write([]byte(imgBuf))
+		ws.Write(imgBuf)
+	}
+}
+
+func (s *GuiServer) patternTableSender(ws *websocket.Conn) {
+	for {
+		srcImg := s.imageProducer.GetPatternTables()
+		_, err := ws.Write(srcImg)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }

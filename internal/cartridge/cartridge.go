@@ -33,7 +33,7 @@ func New(filePath string) Cartridge {
 	prgRomEndOffset := prgRomStartOffset + header.prgRomUnits*prgRomUnitSize
 	prgRom := nesFile[prgRomStartOffset:prgRomEndOffset]
 	chrRomStartOffset := prgRomEndOffset
-	chrRomEndOffset := chrRomStartOffset + header.chrRomUnits*header.chrRomUnits
+	chrRomEndOffset := chrRomStartOffset + header.chrRomUnits*chrRomUnitSize
 	chrRom := nesFile[chrRomStartOffset:chrRomEndOffset]
 
 	return Cartridge{
