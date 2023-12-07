@@ -1,10 +1,13 @@
 package bus
 
+import "github.com/zvoleg/gones/internal/ppu"
+
 type Cartridge interface {
 	ReadPrgRom(address uint16) byte
 	ReadChrRom(address uint16) byte
 	WritePrgRom(address uint16, data byte)
 	WriteChrRom(address uint16, data byte)
+	Mirroring() ppu.Mirroring
 }
 
 type PpuExposedInterface interface {

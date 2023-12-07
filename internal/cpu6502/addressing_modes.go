@@ -1,38 +1,33 @@
 package cpu6502
 
 func acc(cpu *Cpu6502) {
-	cpu.amOpr = cpu.a
 }
 
 func imm(cpu *Cpu6502) {
-	data := cpu.readPc()
-	cpu.amOpr = data
+	cpu.amAdr = cpu.pc
+	cpu.incrementPc()
 }
 
 func abs(cpu *Cpu6502) {
 	adrL := cpu.readPc()
 	adrH := cpu.readPc()
 	cpu.amAdr = uint16(adrH)<<8 | uint16(adrL)
-	cpu.amOpr = cpu.bus.CpuRead(cpu.amAdr)
 }
 
 func zp0(cpu *Cpu6502) {
 	cpu.amAdr = uint16(cpu.readPc())
-	cpu.amOpr = cpu.bus.CpuRead(cpu.amAdr)
 }
 
 func zpx(cpu *Cpu6502) {
 	adr := uint16(cpu.readPc()) + uint16(cpu.x)
 	adr = adr & 0xFF
 	cpu.amAdr = adr
-	cpu.amOpr = cpu.bus.CpuRead(cpu.amAdr)
 }
 
 func zpy(cpu *Cpu6502) {
 	adr := uint16(cpu.readPc()) + uint16(cpu.y)
 	adr = adr & 0xFF
 	cpu.amAdr = adr
-	cpu.amOpr = cpu.bus.CpuRead(cpu.amAdr)
 }
 
 func abx(cpu *Cpu6502) {
@@ -40,7 +35,6 @@ func abx(cpu *Cpu6502) {
 	adrH := cpu.readPc()
 	baseAdr := uint16(adrH)<<8 | uint16(adrL)
 	cpu.amAdr = baseAdr + uint16(cpu.x)
-	cpu.amOpr = cpu.bus.CpuRead(cpu.amAdr)
 	if byte(baseAdr>>8) != adrH {
 		cpu.clockCounter += 1
 	}
@@ -51,7 +45,6 @@ func aby(cpu *Cpu6502) {
 	adrH := cpu.readPc()
 	baseAdr := uint16(adrH)<<8 | uint16(adrL)
 	cpu.amAdr = baseAdr + uint16(cpu.y)
-	cpu.amOpr = cpu.bus.CpuRead(cpu.amAdr)
 	if byte(baseAdr>>8) != adrH {
 		cpu.clockCounter += 1
 	}
@@ -75,7 +68,6 @@ func idx(cpu *Cpu6502) {
 	adrL := cpu.bus.CpuRead(uint16(zAdr))
 	adrH := cpu.bus.CpuRead(uint16(zAdr + 1))
 	cpu.amAdr = uint16(adrH)<<8 | uint16(adrL)
-	cpu.amOpr = cpu.bus.CpuRead(cpu.amAdr)
 }
 
 func idy(cpu *Cpu6502) {
@@ -84,7 +76,6 @@ func idy(cpu *Cpu6502) {
 	adrH := cpu.bus.CpuRead(uint16(zAdr + 1))
 	baseAdr := uint16(adrH)<<8 | uint16(adrL)
 	cpu.amAdr = baseAdr + uint16(cpu.y)
-	cpu.amOpr = cpu.bus.CpuRead(cpu.amAdr)
 	if byte(cpu.amAdr>>8) != adrH {
 		cpu.clockCounter += 1
 	}

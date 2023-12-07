@@ -10,12 +10,14 @@ import (
 const (
 	frame       = "frame"
 	patterTable = "pattern"
+	nameTable   = "nameTable"
 	collor      = "collor"
 )
 
 type ImageProducer interface {
 	GetMainScreen() []byte
 	GetPatternTables() []byte
+	GetNameTable() []byte
 	GetCollorPallete() []byte
 }
 
@@ -45,12 +47,14 @@ func (s *GuiServer) connectionHandler(ws *websocket.Conn) {
 		s.frameSender(ws)
 	case patterTable:
 		s.patternTableSender(ws)
+	case nameTable:
+		s.nameTableSender(ws)
 	}
 }
 
 func (s *GuiServer) frameSender(ws *websocket.Conn) {
 	for {
-		imgSize := 256 * 244
+		imgSize := 256 * 240
 		var imgBuf []byte = make([]byte, imgSize*4)
 		for i := 0; i < imgSize*4; i += 4 {
 			dot := byte(rand.Intn(3) / 2)
@@ -59,7 +63,12 @@ func (s *GuiServer) frameSender(ws *websocket.Conn) {
 			imgBuf[i+2] = dot * byte(rand.Intn(256))
 			imgBuf[i+3] = 255
 		}
-		ws.Write(imgBuf)
+		_, err := ws.Write(imgBuf)
+		if err != nil {
+			fmt.Println(err)
+			ws.Close()
+			return
+		}
 	}
 }
 
@@ -69,6 +78,20 @@ func (s *GuiServer) patternTableSender(ws *websocket.Conn) {
 		_, err := ws.Write(srcImg)
 		if err != nil {
 			fmt.Println(err)
+			ws.Close()
+			return
+		}
+	}
+}
+
+func (s *GuiServer) nameTableSender(ws *websocket.Conn) {
+	for {
+		srcImg := s.imageProducer.GetNameTable()
+		_, err := ws.Write(srcImg)
+		if err != nil {
+			fmt.Println(err)
+			ws.Close()
+			return
 		}
 	}
 }

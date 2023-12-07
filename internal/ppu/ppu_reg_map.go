@@ -7,6 +7,15 @@ func (ppu *Ppu) RegisterRead(regAddress uint16) byte {
 	switch regAddress {
 	case 2:
 		data = ppu.statusReg.read()
+		*ppu.addressRegister.latch = false
+		ppu.statusReg.setStatusFlag(V, false)
+	case 7:
+		data = ppu.dataBuffer
+		ppu.dataBuffer = ppu.readVram()
+		if ppu.addressRegister.value >= 0x3F00 {
+			data = ppu.dataBuffer
+		}
+		ppu.addressRegister.increment(ppu.controllReg.incrementer)
 	}
 	return data
 }
@@ -28,21 +37,7 @@ func (ppu *Ppu) RegisterWrite(regAddress uint16, data byte) {
 	case 6:
 		ppu.addressRegister.write(data)
 	case 7:
-		address := ppu.addressRegister.value
-		fmt.Printf("Write into VRAM, address: %04X\n", address)
-		switch true {
-		case address <= 0x1FFF:
-			ppu.bus.PpuWrite(address, data)
-		case address >= 0x2000 && address <= 0x3EFF:
-			address = address & 0x1FFF
-			ppu.nameTable[address] = data
-		case address >= 0x3F00 && address <= 0x3FFF:
-			address = address & 0x1F
-			ppu.paletteRam[address] = data
-		default:
-			fmt.Printf("Wrong address for writing into vram: %04X\n", address)
-		}
-		incrementer := uint16(ppu.controllReg.getVramIncrement())
-		ppu.addressRegister.increment(incrementer)
+		ppu.writeVram(data)
+		ppu.addressRegister.increment(ppu.controllReg.incrementer)
 	}
 }

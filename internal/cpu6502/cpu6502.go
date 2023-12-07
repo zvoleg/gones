@@ -32,7 +32,6 @@ type Cpu6502 struct {
 
 	opcode byte
 	amAdr  uint16
-	amOpr  byte
 
 	bus          Bus6502
 	signalLine   chan Signal
@@ -76,7 +75,7 @@ func (cpu *Cpu6502) Clock() {
 	cpu.clockCounter = instr.clocks
 	instr.am(cpu)
 	instr.handler(cpu)
-	fmt.Printf("%s addr:%04X opr:%02X\n", log, cpu.amAdr, cpu.amOpr)
+	fmt.Printf("%s addr:%04X\n", log, cpu.amAdr)
 	clocks := clock{cpu.clockCounter}
 	clocks.waitExecution()
 }
@@ -138,4 +137,8 @@ func (cpu *Cpu6502) push(data byte) {
 func (cpu *Cpu6502) pop() byte {
 	cpu.s += 1
 	return cpu.bus.CpuRead(0x0100 | uint16(cpu.s))
+}
+
+func (cpu *Cpu6502) fetch() byte {
+	return cpu.bus.CpuRead(cpu.amAdr)
 }

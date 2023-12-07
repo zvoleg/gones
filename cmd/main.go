@@ -15,7 +15,7 @@ func main() {
 	wg := sync.WaitGroup{}
 
 	cpuInterruptLine := make(chan cpu6502.Signal, 3)
-	cartridge := cartridge.New("./smb.nes")
+	cartridge := cartridge.New("./dk.nes")
 	ppuEmu := ppu.NewPpu(cpuInterruptLine)
 	bus := bus.New(&cartridge, &ppuEmu)
 	ppuEmu.InitBus(&bus)
@@ -28,6 +28,7 @@ func main() {
 		server := ppu.NewServer(&ppuEmu)
 		http.Handle("/frame", websocket.Handler(server.Handler))
 		http.Handle("/pattern", websocket.Handler(server.Handler))
+		http.Handle("/name", websocket.Handler(server.Handler))
 		http.ListenAndServe(":3000", nil)
 	}()
 	wg.Add(1)

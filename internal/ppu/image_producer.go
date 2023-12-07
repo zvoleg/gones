@@ -74,11 +74,11 @@ func (ppu *Ppu) readPatternTable(img *image, table int) {
 				case 0:
 					d = newDot(0x00, 00, 00)
 				case 1:
-					d = newDot(0x70, 0xB0, 0x40)
+					d = newDot(0xD0, 0xD0, 0xD0)
 				case 2:
-					d = newDot(0x40, 0x40, 0x90)
+					d = newDot(0x50, 0x50, 0xD0)
 				case 3:
-					d = newDot(0x70, 0x30, 0xA0)
+					d = newDot(0xD0, 0x50, 0x50)
 				}
 				img.setDot(x, y, d)
 				x += 1
@@ -90,6 +90,54 @@ func (ppu *Ppu) readPatternTable(img *image, table int) {
 		xOffset += 8
 		y = yOffset
 		x = xOffset
+	}
+}
+
+func (ppu *Ppu) GetNameTable() []byte {
+	img := newImage(512, 512)
+	ppu.readNameTable(&img, 0)
+	ppu.readNameTable(&img, 1)
+	return img.buff
+}
+
+func (ppu *Ppu) readNameTable(img *image, table int) {
+	startX := 256 * table
+	startY := 0
+	startAddress := 0x400 * table
+	for i := startAddress; i < startAddress+0x400; i += 1 {
+		spiteId := uint16(ppu.nameTable[i])
+		x := startX
+		y := startY
+		for spriteByteNum := 0; spriteByteNum < 8; spriteByteNum += 1 {
+			spriteTable := ppu.controllReg.backgroundTable
+			spriteAddress := spriteTable + spiteId*0x10 + uint16(spriteByteNum)
+			plane0 := ppu.bus.PpuRead(spriteAddress)
+			plane1 := ppu.bus.PpuRead(spriteAddress + 8)
+			for bit := 0; bit < 8; bit += 1 {
+				offset := 7 - bit
+				dotBits := ((plane1>>offset)<<1)&2 | (plane0>>byte(offset))&1
+				var d dot
+				switch dotBits {
+				case 0:
+					d = newDot(0x00, 00, 00)
+				case 1:
+					d = newDot(0xD0, 0xD0-0x50*byte(table), 0xD0-0x50*byte(table))
+				case 2:
+					d = newDot(0x50, 0x50, 0xD0)
+				case 3:
+					d = newDot(0xD0, 0x50, 0x50)
+				}
+				img.setDot(x, y, d)
+				x += 1
+			}
+			x = startX
+			y += 1
+		}
+		startX += 8
+		if startX >= 256+256*table {
+			startX = 256 * table
+			startY += 8
+		}
 	}
 }
 

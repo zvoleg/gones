@@ -10,11 +10,9 @@ const (
 
 type statusReg struct {
 	value byte
-	latch *bool
 }
 
 func (r *statusReg) read() byte {
-	*r.latch = false
 	return r.value
 }
 

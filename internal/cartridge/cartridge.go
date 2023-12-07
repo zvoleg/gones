@@ -2,6 +2,8 @@ package cartridge
 
 import (
 	"os"
+
+	"github.com/zvoleg/gones/internal/ppu"
 )
 
 const prgRomUnitSize = 0x4000
@@ -70,4 +72,8 @@ func (c *Cartridge) WritePrgRom(address uint16, data byte) {
 
 func (c *Cartridge) WriteChrRom(address uint16, data byte) {
 	// mappedAddress := c.mapper.prgAddress(address)
+}
+
+func (c *Cartridge) Mirroring() ppu.Mirroring {
+	return c.header.mirroring
 }

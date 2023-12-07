@@ -2,9 +2,12 @@ var frameSocket = new WebSocket("ws://localhost:3000/frame");
 frameSocket.binaryType = "arraybuffer";
 var patternSocket = new WebSocket("ws://localhost:3000/pattern");
 patternSocket.binaryType = "arraybuffer";
+var nameTableSocket = new WebSocket("ws://localhost:3000/name");
+nameTableSocket.binaryType = "arraybuffer";
 
-setupSocketAndCanvas(frameSocket, "frame", 256, 244, 3)
-setupSocketAndCanvas(patternSocket, "pattern", 256, 128, 3)
+setupSocketAndCanvas(frameSocket, "frame", 256, 240, 3)
+setupSocketAndCanvas(patternSocket, "pattern", 256, 128, 2)
+setupSocketAndCanvas(nameTableSocket, "nameTable", 512, 480, 1)
 
 function setupSocketAndCanvas(socket, canvasName, width, height, scale) {
   const canvas = document.getElementById(canvasName);
