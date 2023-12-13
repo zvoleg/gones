@@ -1,34 +1,6 @@
 package ppu
 
-type dot struct {
-	r, g, b, a byte
-}
-
-func newDot(r, g, b byte) dot {
-	return dot{
-		r: r,
-		g: g,
-		b: b,
-		a: 0xFF,
-	}
-}
-
-type image struct {
-	buff   []byte
-	width  int
-	height int
-}
-
-func newImage(width, height int) image {
-	buff := make([]byte, width*height*4)
-	return image{
-		buff:   buff,
-		width:  width,
-		height: height,
-	}
-}
-
-func (i *image) setDot(x, y int, dot dot) {
+func (i *image) setDot(x, y int, dot color) {
 	address := (y * i.width * 4) + x*4
 	i.buff[address] = dot.r
 	i.buff[address+1] = dot.g
@@ -69,16 +41,16 @@ func (ppu *Ppu) readPatternTable(img *image, table int) {
 			for bit := 0; bit < 8; bit += 1 {
 				offset := 7 - bit
 				dotBits := ((plane1>>offset)<<1)&2 | (plane0>>byte(offset))&1
-				var d dot
+				var d color
 				switch dotBits {
 				case 0:
-					d = newDot(0x00, 00, 00)
+					d = newColor(0x00, 00, 00)
 				case 1:
-					d = newDot(0xD0, 0xD0, 0xD0)
+					d = newColor(0xD0, 0xD0, 0xD0)
 				case 2:
-					d = newDot(0x50, 0x50, 0xD0)
+					d = newColor(0x50, 0x50, 0xD0)
 				case 3:
-					d = newDot(0xD0, 0x50, 0x50)
+					d = newColor(0xD0, 0x50, 0x50)
 				}
 				img.setDot(x, y, d)
 				x += 1
@@ -116,16 +88,16 @@ func (ppu *Ppu) readNameTable(img *image, table int) {
 			for bit := 0; bit < 8; bit += 1 {
 				offset := 7 - bit
 				dotBits := ((plane1>>offset)<<1)&2 | (plane0>>byte(offset))&1
-				var d dot
+				var d color
 				switch dotBits {
 				case 0:
-					d = newDot(0x00, 00, 00)
+					d = newColor(0x00, 00, 00)
 				case 1:
-					d = newDot(0xD0, 0xD0-0x50*byte(table), 0xD0-0x50*byte(table))
+					d = newColor(0xD0, 0xD0-0x50*byte(table), 0xD0-0x50*byte(table))
 				case 2:
-					d = newDot(0x50, 0x50, 0xD0)
+					d = newColor(0x50, 0x50, 0xD0)
 				case 3:
-					d = newDot(0xD0, 0x50, 0x50)
+					d = newColor(0xD0, 0x50, 0x50)
 				}
 				img.setDot(x, y, d)
 				x += 1
@@ -142,6 +114,36 @@ func (ppu *Ppu) readNameTable(img *image, table int) {
 }
 
 func (ppu *Ppu) GetCollorPallete() []byte {
-	buffer := make([]byte, 1024)
-	return buffer
+	img := newImage(9, 5)
+	x := 0
+	y := 0
+	colorId := ppu.paletteRam[0]
+	color := palletteColors[colorId]
+	img.setDot(x, y, color)
+	y += 1
+	for _, colorId := range ppu.paletteRam[1:0x10] {
+		color = palletteColors[colorId]
+		img.setDot(x, y, color)
+		x += 1
+		if x == 4 {
+			x = 0
+			y += 1
+		}
+	}
+	y = 0
+	x = 5
+	colorId = ppu.paletteRam[0x10]
+	color = palletteColors[colorId]
+	img.setDot(x, y, color)
+	y += 1
+	for _, colorId := range ppu.paletteRam[0x11:0x20] {
+		color = palletteColors[colorId]
+		img.setDot(x, y, color)
+		x += 1
+		if x == 9 {
+			x = 5
+			y += 1
+		}
+	}
+	return img.buff
 }

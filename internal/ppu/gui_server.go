@@ -9,6 +9,7 @@ import (
 
 const (
 	frame       = "frame"
+	pallette    = "pallette"
 	patterTable = "pattern"
 	nameTable   = "nameTable"
 	collor      = "collor"
@@ -45,6 +46,8 @@ func (s *GuiServer) connectionHandler(ws *websocket.Conn) {
 	switch guiPart {
 	case frame:
 		s.frameSender(ws)
+	case pallette:
+		s.palletteSender(ws)
 	case patterTable:
 		s.patternTableSender(ws)
 	case nameTable:
@@ -64,6 +67,18 @@ func (s *GuiServer) frameSender(ws *websocket.Conn) {
 			imgBuf[i+3] = 255
 		}
 		_, err := ws.Write(imgBuf)
+		if err != nil {
+			fmt.Println(err)
+			ws.Close()
+			return
+		}
+	}
+}
+
+func (s *GuiServer) palletteSender(ws *websocket.Conn) {
+	for {
+		srcImg := s.imageProducer.GetCollorPallete()
+		_, err := ws.Write(srcImg)
 		if err != nil {
 			fmt.Println(err)
 			ws.Close()

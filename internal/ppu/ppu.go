@@ -155,6 +155,12 @@ func (ppu *Ppu) readVram() byte {
 		}
 	case address >= 0x3F00 && address <= 0x3FFF:
 		address = address & 0x1F
+		switch address {
+		case 0x04, 0x08, 0x0C:
+			address = 0
+		case 0x10, 0x14, 0x18, 0x1C:
+			address = address & 0xF
+		}
 		data = ppu.paletteRam[address]
 	default:
 		fmt.Printf("Wrong address for writing into vram: %04X\n", address)
@@ -189,7 +195,14 @@ func (ppu *Ppu) writeVram(data byte) {
 		}
 	case address >= 0x3F00 && address <= 0x3FFF:
 		address = address & 0x1F
-		ppu.paletteRam[address] = data
+		switch address {
+		case 0x10, 0x14, 0x18, 0x1C:
+			mirrorAddress := address & 0xF
+			ppu.paletteRam[address] = data
+			ppu.paletteRam[mirrorAddress] = data
+		default:
+			ppu.paletteRam[address] = data
+		}
 	default:
 		fmt.Printf("Wrong address for writing into vram: %04X\n", address)
 	}
