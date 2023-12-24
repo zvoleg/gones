@@ -1,0 +1,14 @@
+.vram {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+}
+
+.window {
+    display: flex;
+}
+
+.window > div {
+    margin: 5px;
+}

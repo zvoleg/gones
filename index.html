@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html>
     <head>
-
+        <link rel="stylesheet" href="style.css">
     </head>
     <body>
-        <canvas id="frame"></canvas>
-        <canvas id="pallette"></canvas>
-        <canvas id="pattern"></canvas>
-        <canvas id="nameTable"></canvas>
+        <div class="window">
+            <div class="frame">
+                <canvas id="frame"></canvas>
+            </div>
+            <div class="vram">
+                <canvas id="pattern"></canvas>
+                <canvas id="nameTable"></canvas>
+                <canvas id="pallette"></canvas>
+            </div>
+        </div>
         <script src="frame_reader.js"></script>
     </body>
 </html>
