@@ -2,14 +2,12 @@ package ppu
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/zvoleg/gones/internal/cpu6502"
 )
 
-const freequencee float64 = 5369318.0
-const clockTime float64 = 1.0 / freequencee
-const clockTimeNs float64 = clockTime * 1000000000
+// const freequencee float64 = 5369318.0
+// const clockTime float64 = 1.0 / freequencee
 
 type lineType int
 
@@ -50,12 +48,12 @@ type Ppu struct {
 }
 
 func NewPpu(interruptLine chan cpu6502.Signal) Ppu {
-	latch := false // scroll reg and address reg latch (selects LSB and HSB)
 	controllReg := controllReg{}
 	maskReg := maskReg{}
 	statusReg := statusReg{}
 	oamAddressReg := oamAddressReg{}
 	oamDataReg := oamDataReg{}
+	latch := false // scroll reg and address reg latch (selects LSB and HSB)
 	scrollReg := scrollRegister{latch: &latch}
 	addressReg := addressRegister{latch: &latch}
 
@@ -79,8 +77,6 @@ func (ppu *Ppu) InitBus(bus PpuBus) {
 }
 
 func (ppu *Ppu) Clock() {
-	executionTimeNs := clockTimeNs * float64(time.Nanosecond)
-	time.Sleep(time.Duration(executionTimeNs))
 	if ppu.dmaEnabled {
 		ppu.DmaClock()
 	}
@@ -129,7 +125,6 @@ func getLineType(lineNum int) lineType {
 
 func (ppu *Ppu) readVram() byte {
 	address := ppu.addressRegister.value
-	fmt.Printf("Write into VRAM, address: %04X\n", address)
 	var data byte
 	switch true {
 	case address <= 0x1FFF:

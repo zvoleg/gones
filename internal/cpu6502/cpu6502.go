@@ -1,7 +1,5 @@
 package cpu6502
 
-import "fmt"
-
 type Bus6502 interface {
 	CpuRead(address uint16) byte
 	CpuWrite(address uint16, data byte)
@@ -70,14 +68,12 @@ func (cpu *Cpu6502) Clock() {
 
 	opcode := cpu.readPc()
 	instr := instructionTable[opcode]
-	log := fmt.Sprintf("pc:%04X opcode:%02X\t%s", cpu.pc, opcode, instr.name)
+	// log := fmt.Sprintf("pc:%04X opcode:%02X\t%s", cpu.pc, opcode, instr.name)
 	cpu.opcode = opcode
 	cpu.clockCounter = instr.clocks
 	instr.am(cpu)
 	instr.handler(cpu)
-	fmt.Printf("%s addr:%04X\n", log, cpu.amAdr)
-	clocks := clock{cpu.clockCounter}
-	clocks.waitExecution()
+	// fmt.Printf("%s addr:%04X\n", log, cpu.amAdr)
 }
 
 func (cpu *Cpu6502) reset() {
@@ -101,8 +97,6 @@ func (cpu *Cpu6502) interrupt(vector uint16) {
 	pcL = cpu.bus.CpuRead(vector)
 	pcH = cpu.bus.CpuRead(vector + 1)
 	cpu.pc = uint16(pcH)<<8 | uint16(pcL)
-	clocks := clock{7}
-	clocks.waitExecution()
 }
 
 func (cpu *Cpu6502) incrementPc() {

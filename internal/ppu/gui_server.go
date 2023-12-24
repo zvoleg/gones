@@ -26,7 +26,7 @@ type GuiServer struct {
 	imageProducer ImageProducer
 }
 
-func NewServer(imageProducer ImageProducer) *GuiServer {
+func NewGuiServer(imageProducer ImageProducer) *GuiServer {
 	return &GuiServer{imageProducer: imageProducer}
 }
 
