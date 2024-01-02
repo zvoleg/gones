@@ -2,12 +2,13 @@ package ppu
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/zvoleg/gones/internal"
 	"github.com/zvoleg/gones/internal/cpu6502"
 )
 
-// const freequencee float64 = 5369318.0
-// const clockTime float64 = 1.0 / freequencee
+const clockRateNs = 186 * time.Nanosecond
 
 type lineType int
 
@@ -77,6 +78,7 @@ func (ppu *Ppu) InitBus(bus PpuBus) {
 }
 
 func (ppu *Ppu) Clock() {
+	clockStartTime := time.Now()
 	if ppu.dmaEnabled {
 		ppu.DmaClock()
 	}
@@ -109,6 +111,7 @@ func (ppu *Ppu) Clock() {
 		return
 	}
 	ppu.clockCounter += 1
+	internal.ClockWaiter(clockStartTime, clockRateNs)
 }
 
 func getLineType(lineNum int) lineType {

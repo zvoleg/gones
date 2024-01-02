@@ -34,12 +34,13 @@ func main() {
 	}()
 	wg.Add(1)
 	go func() {
-		clockCounter := 0
 		for {
 			ppuEmu.Clock()
-			if clockCounter%3 == 0 {
-				cpu.Clock()
-			}
+		}
+	}()
+	go func() {
+		for {
+			cpu.Clock()
 		}
 	}()
 

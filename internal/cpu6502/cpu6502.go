@@ -1,9 +1,17 @@
 package cpu6502
 
+import (
+	"time"
+
+	"github.com/zvoleg/gones/internal"
+)
+
 type Bus6502 interface {
 	CpuRead(address uint16) byte
 	CpuWrite(address uint16, data byte)
 }
+
+const clockRateNs = 558 * time.Nanosecond
 
 const nmiVector uint16 = 0xFFFA
 const resVector uint16 = 0xFFFC
@@ -44,6 +52,7 @@ func New(bus Bus6502, interruptLine chan Signal) Cpu6502 {
 }
 
 func (cpu *Cpu6502) Clock() {
+	clockStartTime := time.Now()
 	select {
 	case signal := <-cpu.signalLine:
 		switch signal {
@@ -74,6 +83,7 @@ func (cpu *Cpu6502) Clock() {
 	instr.am(cpu)
 	instr.handler(cpu)
 	// fmt.Printf("%s addr:%04X\n", log, cpu.amAdr)
+	internal.ClockWaiter(clockStartTime, clockRateNs*time.Duration(cpu.clockCounter))
 }
 
 func (cpu *Cpu6502) reset() {
