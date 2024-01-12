@@ -6,6 +6,7 @@ import (
 
 	"github.com/zvoleg/gones/internal/bus"
 	"github.com/zvoleg/gones/internal/cartridge"
+	"github.com/zvoleg/gones/internal/controller"
 	"github.com/zvoleg/gones/internal/cpu6502"
 	"github.com/zvoleg/gones/internal/ppu"
 	"golang.org/x/net/websocket"
@@ -17,7 +18,8 @@ func main() {
 	cpuInterruptLine := make(chan cpu6502.Signal, 3)
 	cartridge := cartridge.New("./nestest.nes")
 	ppuEmu := ppu.NewPpu(cpuInterruptLine)
-	bus := bus.New(&cartridge, &ppuEmu)
+	joypad := controller.NewJoypad()
+	bus := bus.New(&cartridge, &ppuEmu, &joypad)
 	ppuEmu.InitBus(&bus)
 	cpu := cpu6502.New(&bus, cpuInterruptLine)
 
@@ -32,13 +34,26 @@ func main() {
 		http.Handle("/name", websocket.Handler(server.Handler))
 		http.ListenAndServe(":3000", nil)
 	}()
+
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
+
+		server := controller.NewControllerServer(&joypad)
+		http.Handle("/input", websocket.Handler(server.Handler))
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
 		for {
 			ppuEmu.Clock()
 		}
 	}()
 	go func() {
+		defer wg.Done()
+
 		for {
 			cpu.Clock()
 		}

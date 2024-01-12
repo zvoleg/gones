@@ -1,6 +1,9 @@
 package bus
 
-import "github.com/zvoleg/gones/internal/ppu"
+import (
+	"github.com/zvoleg/gones/internal/controller"
+	"github.com/zvoleg/gones/internal/ppu"
+)
 
 type Cartridge interface {
 	ReadPrgRom(address uint16) byte
@@ -20,11 +23,13 @@ type Bus struct {
 	ram            [0x0800]byte
 	rom            Cartridge
 	ppuRegisterMap PpuExposedInterface
+	inputInterface controller.InputInterface
 }
 
-func New(rom Cartridge, ppuRegisterMap PpuExposedInterface) Bus {
+func New(rom Cartridge, ppuRegisterMap PpuExposedInterface, inputInterface controller.InputInterface) Bus {
 	return Bus{
 		rom:            rom,
 		ppuRegisterMap: ppuRegisterMap,
+		inputInterface: inputInterface,
 	}
 }
