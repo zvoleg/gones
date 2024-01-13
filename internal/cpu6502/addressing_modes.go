@@ -4,48 +4,43 @@ func acc(cpu *Cpu6502) {
 }
 
 func imm(cpu *Cpu6502) {
-	cpu.amAdr = cpu.pc
-	cpu.incrementPc()
+	// all data was readed by cpu fetchin instruction data
+	// but all instructions fetches data by their address
+	cpu.operatorAdr = cpu.pc - 1
 }
 
 func abs(cpu *Cpu6502) {
-	adrL := cpu.readPc()
-	adrH := cpu.readPc()
-	cpu.amAdr = uint16(adrH)<<8 | uint16(adrL)
+	cpu.operatorAdr = cpu.instrData
 }
 
 func zp0(cpu *Cpu6502) {
-	cpu.amAdr = uint16(cpu.readPc())
+	cpu.operatorAdr = cpu.instrData
 }
 
 func zpx(cpu *Cpu6502) {
-	adr := uint16(cpu.readPc()) + uint16(cpu.x)
+	adr := cpu.instrData + uint16(cpu.x)
 	adr = adr & 0xFF
-	cpu.amAdr = adr
+	cpu.operatorAdr = adr
 }
 
 func zpy(cpu *Cpu6502) {
-	adr := uint16(cpu.readPc()) + uint16(cpu.y)
+	adr := cpu.instrData + uint16(cpu.y)
 	adr = adr & 0xFF
-	cpu.amAdr = adr
+	cpu.operatorAdr = adr
 }
 
 func abx(cpu *Cpu6502) {
-	adrL := cpu.readPc()
-	adrH := cpu.readPc()
-	baseAdr := uint16(adrH)<<8 | uint16(adrL)
-	cpu.amAdr = baseAdr + uint16(cpu.x)
-	if byte(baseAdr>>8) != adrH {
+	baseAdr := cpu.instrData
+	cpu.operatorAdr = baseAdr + uint16(cpu.x)
+	if cpu.operatorAdr&0xFF00 != baseAdr&0xFF00 {
 		cpu.clockCounter += 1
 	}
 }
 
 func aby(cpu *Cpu6502) {
-	adrL := cpu.readPc()
-	adrH := cpu.readPc()
-	baseAdr := uint16(adrH)<<8 | uint16(adrL)
-	cpu.amAdr = baseAdr + uint16(cpu.y)
-	if byte(baseAdr>>8) != adrH {
+	baseAdr := cpu.instrData
+	cpu.operatorAdr = baseAdr + uint16(cpu.y)
+	if cpu.operatorAdr&0xFF00 != baseAdr&0xFF00 {
 		cpu.clockCounter += 1
 	}
 }
@@ -55,37 +50,35 @@ func imp(cpu *Cpu6502) {
 }
 
 func rel(cpu *Cpu6502) {
-	offset := uint16(cpu.readPc())
+	offset := cpu.instrData
 	if offset&0x80 != 0 {
 		offset = 0xFF00 | offset
 	}
-	cpu.amAdr = cpu.pc + uint16(offset)
+	cpu.operatorAdr = cpu.pc + offset
 }
 
 func idx(cpu *Cpu6502) {
-	zAdr := cpu.readPc()
-	zAdr = zAdr + cpu.x
-	adrL := cpu.bus.CpuRead(uint16(zAdr))
-	adrH := cpu.bus.CpuRead(uint16(zAdr + 1))
-	cpu.amAdr = uint16(adrH)<<8 | uint16(adrL)
+	zAdr := cpu.instrData
+	zAdr = zAdr + uint16(cpu.x)
+	adrL := cpu.bus.CpuRead(zAdr)
+	adrH := cpu.bus.CpuRead(zAdr + 1)
+	cpu.operatorAdr = uint16(adrH)<<8 | uint16(adrL)
 }
 
 func idy(cpu *Cpu6502) {
-	zAdr := cpu.readPc()
-	adrL := cpu.bus.CpuRead(uint16(zAdr))
-	adrH := cpu.bus.CpuRead(uint16(zAdr + 1))
+	zAdr := cpu.instrData
+	adrL := cpu.bus.CpuRead(zAdr)
+	adrH := cpu.bus.CpuRead(zAdr + 1)
 	baseAdr := uint16(adrH)<<8 | uint16(adrL)
-	cpu.amAdr = baseAdr + uint16(cpu.y)
-	if byte(cpu.amAdr>>8) != adrH {
+	cpu.operatorAdr = baseAdr + uint16(cpu.y)
+	if cpu.operatorAdr&0xFF00 != baseAdr&0xFF {
 		cpu.clockCounter += 1
 	}
 }
 
 func ind(cpu *Cpu6502) { // JMP[IND] only
-	iAdrL := cpu.readPc()
-	iAdrH := cpu.readPc()
-	iAdr := uint16(iAdrH)<<8 | uint16(iAdrL)
+	iAdr := cpu.instrData
 	adrL := cpu.bus.CpuRead(iAdr)
 	adrH := cpu.bus.CpuRead(iAdr + 1)
-	cpu.amAdr = uint16(adrH)<<8 | uint16(adrL)
+	cpu.operatorAdr = uint16(adrH)<<8 | uint16(adrL)
 }

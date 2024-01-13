@@ -16,14 +16,14 @@ func add(a, b byte) (res byte, carry bool, overflow bool) {
 
 func branchProcess(cpu *Cpu6502) {
 	cpu.clockCounter += 1
-	if cpu.amAdr&0xFF00 != cpu.pc&0xFF00 { // comparing the high order of bits
+	if cpu.operatorAdr&0xFF00 != cpu.pc&0xFF00 { // comparing the high order of bits
 		cpu.clockCounter += 1
 	}
-	cpu.pc = cpu.amAdr
+	cpu.pc = cpu.operatorAdr
 }
 
 func adc(cpu *Cpu6502) { // decimal mod is not implemented
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	sum, carrySum, overflSum := add(cpu.a, operand)
 	res, carryCarry, overflCarry := add(sum, cpu.getFlag(C))
 	cpu.a = res
@@ -34,7 +34,7 @@ func adc(cpu *Cpu6502) { // decimal mod is not implemented
 }
 
 func and(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	res := cpu.a & operand
 	cpu.a = res
 	cpu.setFlag(Z, res == 0)
@@ -42,13 +42,13 @@ func and(cpu *Cpu6502) {
 }
 
 func asl(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	popedBit := operand >> 7
 	res := operand << 1
 	if cpu.opcode == aslAcc {
 		cpu.a = res
 	} else {
-		cpu.bus.CpuWrite(cpu.amAdr, res)
+		cpu.bus.CpuWrite(cpu.operatorAdr, res)
 	}
 	cpu.setFlag(C, popedBit == 1)
 	cpu.setFlag(N, res&0x80 == 1)
@@ -74,7 +74,7 @@ func beq(cpu *Cpu6502) {
 }
 
 func bit(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	res := cpu.a & operand
 	cpu.setFlag(N, res&0x80 != 0)
 	cpu.setFlag(V, res&0x40 != 0)
@@ -142,7 +142,7 @@ func clv(cpu *Cpu6502) {
 }
 
 func cmp(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	res := cpu.a - operand
 	cpu.setFlag(Z, res == 0)
 	cpu.setFlag(N, res&0x80 != 0)
@@ -150,7 +150,7 @@ func cmp(cpu *Cpu6502) {
 }
 
 func cpx(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	res := cpu.x - operand
 	cpu.setFlag(Z, res == 0)
 	cpu.setFlag(N, res&0x80 != 0)
@@ -158,7 +158,7 @@ func cpx(cpu *Cpu6502) {
 }
 
 func cpy(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	res := cpu.y - operand
 	cpu.setFlag(Z, res == 0)
 	cpu.setFlag(N, res&0x80 != 0)
@@ -166,9 +166,9 @@ func cpy(cpu *Cpu6502) {
 }
 
 func dec(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	res := operand - 1
-	cpu.bus.CpuWrite(cpu.amAdr, res)
+	cpu.bus.CpuWrite(cpu.operatorAdr, res)
 	cpu.setFlag(N, res&0x80 != 0)
 	cpu.setFlag(Z, res == 0)
 }
@@ -186,7 +186,7 @@ func dey(cpu *Cpu6502) {
 }
 
 func eor(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	res := cpu.a ^ operand
 	cpu.a = res
 	cpu.setFlag(Z, res == 0)
@@ -194,9 +194,9 @@ func eor(cpu *Cpu6502) {
 }
 
 func inc(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	res := operand + 1
-	cpu.bus.CpuWrite(cpu.amAdr, res)
+	cpu.bus.CpuWrite(cpu.operatorAdr, res)
 	cpu.setFlag(N, res&0x80 != 0)
 	cpu.setFlag(Z, res == 0)
 }
@@ -214,7 +214,7 @@ func iny(cpu *Cpu6502) {
 }
 
 func jmp(cpu *Cpu6502) {
-	cpu.pc = cpu.amAdr
+	cpu.pc = cpu.operatorAdr
 }
 
 func jsr(cpu *Cpu6502) {
@@ -222,36 +222,36 @@ func jsr(cpu *Cpu6502) {
 	cpu.push(pcH)
 	pcL := byte(cpu.pc)
 	cpu.push(pcL)
-	cpu.pc = cpu.amAdr
+	cpu.pc = cpu.operatorAdr
 }
 
 func lda(cpu *Cpu6502) {
-	cpu.a = cpu.fetch()
+	cpu.a = cpu.bus.CpuRead(cpu.operatorAdr)
 	cpu.setFlag(N, cpu.a&0x80 != 0)
 	cpu.setFlag(Z, cpu.a == 0)
 }
 
 func ldx(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	cpu.x = operand
 	cpu.setFlag(Z, operand == 0)
 	cpu.setFlag(N, operand&0x80 != 0)
 }
 
 func ldy(cpu *Cpu6502) {
-	cpu.y = cpu.fetch()
+	cpu.y = cpu.bus.CpuRead(cpu.operatorAdr)
 	cpu.setFlag(Z, cpu.y == 0)
 	cpu.setFlag(N, cpu.y&0x80 != 0)
 }
 
 func lsr(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	popedBit := operand & 1
 	res := operand >> 1
 	if cpu.opcode == lslAcc {
 		cpu.a = res
 	} else {
-		cpu.bus.CpuWrite(cpu.amAdr, res)
+		cpu.bus.CpuWrite(cpu.operatorAdr, res)
 	}
 	cpu.setFlag(C, popedBit == 1)
 	cpu.setFlag(N, false)
@@ -263,7 +263,7 @@ func nop(cpu *Cpu6502) {
 }
 
 func ora(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	res := cpu.a | operand
 	cpu.a = res
 	cpu.setFlag(Z, res == 0)
@@ -289,14 +289,14 @@ func plp(cpu *Cpu6502) {
 }
 
 func rol(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	popedBit := operand >> 7
 	res := operand << 1
 	res = res | cpu.getFlag(C)
 	if cpu.opcode == rolAcc {
 		cpu.a = res
 	} else {
-		cpu.bus.CpuWrite(cpu.amAdr, res)
+		cpu.bus.CpuWrite(cpu.operatorAdr, res)
 	}
 	cpu.setFlag(C, popedBit == 1)
 	cpu.setFlag(N, res&0x80 == 1)
@@ -304,14 +304,14 @@ func rol(cpu *Cpu6502) {
 }
 
 func ror(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	popedBit := operand & 1
 	res := operand >> 1
 	res = res | (cpu.getFlag(C) << 7)
 	if cpu.opcode == rorAcc {
 		cpu.a = res
 	} else {
-		cpu.bus.CpuWrite(cpu.amAdr, res)
+		cpu.bus.CpuWrite(cpu.operatorAdr, res)
 	}
 	cpu.setFlag(C, popedBit == 1)
 	cpu.setFlag(N, res&0x80 == 1)
@@ -333,7 +333,7 @@ func rts(cpu *Cpu6502) {
 }
 
 func sbc(cpu *Cpu6502) {
-	operand := cpu.fetch()
+	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	sub := ^operand + cpu.getFlag(C)
 	res, _, overflow := add(cpu.a, sub)
 	cpu.a = res
@@ -356,15 +356,15 @@ func sei(cpu *Cpu6502) {
 }
 
 func sta(cpu *Cpu6502) {
-	cpu.bus.CpuWrite(cpu.amAdr, cpu.a)
+	cpu.bus.CpuWrite(cpu.operatorAdr, cpu.a)
 }
 
 func stx(cpu *Cpu6502) {
-	cpu.bus.CpuWrite(cpu.amAdr, cpu.x)
+	cpu.bus.CpuWrite(cpu.operatorAdr, cpu.x)
 }
 
 func sty(cpu *Cpu6502) {
-	cpu.bus.CpuWrite(cpu.amAdr, cpu.y)
+	cpu.bus.CpuWrite(cpu.operatorAdr, cpu.y)
 }
 
 func tax(cpu *Cpu6502) {

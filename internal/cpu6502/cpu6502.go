@@ -1,6 +1,7 @@
 package cpu6502
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/zvoleg/gones/internal"
@@ -36,8 +37,9 @@ type Cpu6502 struct {
 	s      byte
 	status byte
 
-	opcode byte
-	amAdr  uint16
+	opcode      byte
+	instrData   uint16
+	operatorAdr uint16
 
 	bus          Bus6502
 	signalLine   chan Signal
@@ -76,13 +78,15 @@ func (cpu *Cpu6502) Clock() {
 	}
 
 	opcode := cpu.readPc()
+	fmt.Printf("%04X: %02X\t", cpu.pc-1, opcode)
 	instr := instructionTable[opcode]
 	// log := fmt.Sprintf("pc:%04X opcode:%02X\t%s", cpu.pc, opcode, instr.name)
 	cpu.opcode = opcode
 	cpu.clockCounter = instr.clocks
-	instr.am(cpu)
-	instr.handler(cpu)
-	// fmt.Printf("%s addr:%04X\n", log, cpu.amAdr)
+	cpu.fetch(instr.am.size)
+	instr.am.exec(cpu)
+	instr.op.exec(cpu)
+	fmt.Println(instr.disassebly(cpu.instrData))
 	internal.ClockWaiter(clockStartTime, clockRateNs*time.Duration(cpu.clockCounter))
 }
 
@@ -113,6 +117,7 @@ func (cpu *Cpu6502) incrementPc() {
 	cpu.pc += 1
 }
 
+// Reading a byte by current program counter and increments it
 func (cpu *Cpu6502) readPc() byte {
 	data := cpu.bus.CpuRead(cpu.pc)
 	cpu.incrementPc()
@@ -133,16 +138,29 @@ func (cpu *Cpu6502) setFlag(f flag, set bool) {
 	}
 }
 
+// this function pushes a byte to the stack and executes the stack pointer calculations
 func (cpu *Cpu6502) push(data byte) {
 	cpu.bus.CpuWrite(0x0100|uint16(cpu.s), data)
 	cpu.s -= 1
 }
 
+// this function popes a byte to the stack and executes the stack pointer calculations
 func (cpu *Cpu6502) pop() byte {
 	cpu.s += 1
 	return cpu.bus.CpuRead(0x0100 | uint16(cpu.s))
 }
 
-func (cpu *Cpu6502) fetch() byte {
-	return cpu.bus.CpuRead(cpu.amAdr)
+// Fetch instruction data in amount of n bytes.
+//
+// There is assumed that n can't be more than 2
+//
+// First read byte is represented as LSB and the second read byte is represented as MSB
+func (cpu *Cpu6502) fetch(n uint16) {
+	var data uint16 = 0
+	for i := uint16(0); i < n; i += 1 {
+		b := uint16(cpu.readPc())
+		b <<= 8 * i
+		data |= b
+	}
+	cpu.instrData = data
 }
