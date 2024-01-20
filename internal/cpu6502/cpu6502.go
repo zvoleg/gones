@@ -45,11 +45,14 @@ type Cpu6502 struct {
 	signalLine   chan Signal
 	dmaEnabled   bool
 	clockCounter uint
+	clockTimer   time.Time
 }
 
 func New(bus Bus6502, interruptLine chan Signal) Cpu6502 {
-	cpu := Cpu6502{bus: bus, signalLine: interruptLine}
+	timer := time.Now()
+	cpu := Cpu6502{bus: bus, signalLine: interruptLine, clockTimer: timer}
 	cpu.reset()
+	// cpu.pc = 0xC000
 	return cpu
 }
 
@@ -77,15 +80,15 @@ func (cpu *Cpu6502) Clock() {
 		return
 	}
 
+	opcodeAddr := cpu.pc
 	opcode := cpu.readPc()
-	fmt.Printf("%04X: %02X\t", cpu.pc-1, opcode)
 	instr := instructionTable[opcode]
-	// log := fmt.Sprintf("pc:%04X opcode:%02X\t%s", cpu.pc, opcode, instr.name)
 	cpu.opcode = opcode
 	cpu.clockCounter = instr.clocks
 	cpu.fetch(instr.am.size)
 	instr.am.exec(cpu)
 	instr.op.exec(cpu)
+	fmt.Printf("a=%02X x=%02X Y=%02X st=%08b pc=%04X st_ptr=%02X | opcode=%02X ", cpu.a, cpu.x, cpu.y, cpu.status, opcodeAddr, cpu.s, cpu.opcode)
 	fmt.Println(instr.disassebly(cpu.instrData))
 	internal.ClockWaiter(clockStartTime, clockRateNs*time.Duration(cpu.clockCounter))
 }
@@ -95,11 +98,12 @@ func (cpu *Cpu6502) reset() {
 	pcL := cpu.bus.CpuRead(resVector)
 	pcH := cpu.bus.CpuRead(resVector + 1)
 	cpu.pc = uint16(pcH)<<8 | uint16(pcL)
-	cpu.status = 0x34 // set flags U, B, Iconst irqVecL uint16 = 0xFFFE
+	cpu.status = 0x24 // set flags U, I
 }
 
 func (cpu *Cpu6502) interrupt(vector uint16) {
 	// save cpu backup on the stack
+	clockStartTime := time.Now()
 	pcH := byte(cpu.pc >> 8)
 	cpu.push(pcH)
 	pcL := byte(cpu.pc)
@@ -111,6 +115,7 @@ func (cpu *Cpu6502) interrupt(vector uint16) {
 	pcL = cpu.bus.CpuRead(vector)
 	pcH = cpu.bus.CpuRead(vector + 1)
 	cpu.pc = uint16(pcH)<<8 | uint16(pcL)
+	internal.ClockWaiter(clockStartTime, 7*clockRateNs)
 }
 
 func (cpu *Cpu6502) incrementPc() {

@@ -59,16 +59,16 @@ func rel(cpu *Cpu6502) {
 
 func idx(cpu *Cpu6502) {
 	zAdr := cpu.instrData
-	zAdr = zAdr + uint16(cpu.x)
+	zAdr = (zAdr + uint16(cpu.x)) & 0xFF // Discard cary
 	adrL := cpu.bus.CpuRead(zAdr)
-	adrH := cpu.bus.CpuRead(zAdr + 1)
+	adrH := cpu.bus.CpuRead((zAdr + 1) & 0xFF) // Both memory locations must be in page zero
 	cpu.operatorAdr = uint16(adrH)<<8 | uint16(adrL)
 }
 
 func idy(cpu *Cpu6502) {
 	zAdr := cpu.instrData
 	adrL := cpu.bus.CpuRead(zAdr)
-	adrH := cpu.bus.CpuRead(zAdr + 1)
+	adrH := cpu.bus.CpuRead((zAdr + 1) & 0xFF) // Both memory locations must be in page zero
 	baseAdr := uint16(adrH)<<8 | uint16(adrL)
 	cpu.operatorAdr = baseAdr + uint16(cpu.y)
 	if cpu.operatorAdr&0xFF00 != baseAdr&0xFF {
@@ -79,6 +79,9 @@ func idy(cpu *Cpu6502) {
 func ind(cpu *Cpu6502) { // JMP[IND] only
 	iAdr := cpu.instrData
 	adrL := cpu.bus.CpuRead(iAdr)
-	adrH := cpu.bus.CpuRead(iAdr + 1)
+	iAdrH := iAdr & 0xFF00
+	iAdrL := (iAdr + 1) & 0x00FF // Can't cros the memory page
+	nextIAdr := iAdrH | iAdrL
+	adrH := cpu.bus.CpuRead(nextIAdr)
 	cpu.operatorAdr = uint16(adrH)<<8 | uint16(adrL)
 }

@@ -1,8 +1,8 @@
 package cpu6502
 
-const lslAcc byte = 0x4A
 const aslAcc byte = 0x0A
 const rolAcc byte = 0x2A
+const lsrAcc byte = 0x4A
 const rorAcc byte = 0x6A
 
 func add(a, b byte) (res byte, carry bool, overflow bool) {
@@ -42,7 +42,12 @@ func and(cpu *Cpu6502) {
 }
 
 func asl(cpu *Cpu6502) {
-	operand := cpu.bus.CpuRead(cpu.operatorAdr)
+	var operand byte
+	if cpu.opcode == aslAcc {
+		operand = cpu.a
+	} else {
+		operand = cpu.bus.CpuRead(cpu.operatorAdr)
+	}
 	popedBit := operand >> 7
 	res := operand << 1
 	if cpu.opcode == aslAcc {
@@ -51,7 +56,7 @@ func asl(cpu *Cpu6502) {
 		cpu.bus.CpuWrite(cpu.operatorAdr, res)
 	}
 	cpu.setFlag(C, popedBit == 1)
-	cpu.setFlag(N, res&0x80 == 1)
+	cpu.setFlag(N, res&0x80 != 0)
 	cpu.setFlag(Z, res == 0)
 }
 
@@ -76,8 +81,8 @@ func beq(cpu *Cpu6502) {
 func bit(cpu *Cpu6502) {
 	operand := cpu.bus.CpuRead(cpu.operatorAdr)
 	res := cpu.a & operand
-	cpu.setFlag(N, res&0x80 != 0)
-	cpu.setFlag(V, res&0x40 != 0)
+	cpu.setFlag(N, operand&0x80 != 0)
+	cpu.setFlag(V, operand&0x40 != 0)
 	cpu.setFlag(Z, res == 0)
 }
 
@@ -218,6 +223,7 @@ func jmp(cpu *Cpu6502) {
 }
 
 func jsr(cpu *Cpu6502) {
+	cpu.pc -= 1
 	pcH := byte(cpu.pc >> 8)
 	cpu.push(pcH)
 	pcL := byte(cpu.pc)
@@ -245,10 +251,15 @@ func ldy(cpu *Cpu6502) {
 }
 
 func lsr(cpu *Cpu6502) {
-	operand := cpu.bus.CpuRead(cpu.operatorAdr)
+	var operand byte
+	if cpu.opcode == lsrAcc {
+		operand = cpu.a
+	} else {
+		operand = cpu.bus.CpuRead(cpu.operatorAdr)
+	}
 	popedBit := operand & 1
 	res := operand >> 1
-	if cpu.opcode == lslAcc {
+	if cpu.opcode == lsrAcc {
 		cpu.a = res
 	} else {
 		cpu.bus.CpuWrite(cpu.operatorAdr, res)
@@ -275,7 +286,9 @@ func pha(cpu *Cpu6502) {
 }
 
 func php(cpu *Cpu6502) {
-	cpu.push(cpu.status)
+	status := cpu.status
+	status |= 1 << B
+	cpu.push(status)
 }
 
 func pla(cpu *Cpu6502) {
@@ -286,10 +299,16 @@ func pla(cpu *Cpu6502) {
 
 func plp(cpu *Cpu6502) {
 	cpu.status = cpu.pop()
+	cpu.setFlag(U, true)
 }
 
 func rol(cpu *Cpu6502) {
-	operand := cpu.bus.CpuRead(cpu.operatorAdr)
+	var operand byte
+	if cpu.opcode == rolAcc {
+		operand = cpu.a
+	} else {
+		operand = cpu.bus.CpuRead(cpu.operatorAdr)
+	}
 	popedBit := operand >> 7
 	res := operand << 1
 	res = res | cpu.getFlag(C)
@@ -299,12 +318,17 @@ func rol(cpu *Cpu6502) {
 		cpu.bus.CpuWrite(cpu.operatorAdr, res)
 	}
 	cpu.setFlag(C, popedBit == 1)
-	cpu.setFlag(N, res&0x80 == 1)
+	cpu.setFlag(N, res&0x80 != 0)
 	cpu.setFlag(Z, res == 0)
 }
 
 func ror(cpu *Cpu6502) {
-	operand := cpu.bus.CpuRead(cpu.operatorAdr)
+	var operand byte
+	if cpu.opcode == rorAcc {
+		operand = cpu.a
+	} else {
+		operand = cpu.bus.CpuRead(cpu.operatorAdr)
+	}
 	popedBit := operand & 1
 	res := operand >> 1
 	res = res | (cpu.getFlag(C) << 7)
@@ -314,7 +338,7 @@ func ror(cpu *Cpu6502) {
 		cpu.bus.CpuWrite(cpu.operatorAdr, res)
 	}
 	cpu.setFlag(C, popedBit == 1)
-	cpu.setFlag(N, res&0x80 == 1)
+	cpu.setFlag(N, res&0x80 != 0)
 	cpu.setFlag(Z, res == 0)
 }
 
@@ -330,6 +354,7 @@ func rts(cpu *Cpu6502) {
 	pcL := cpu.pop()
 	pcH := cpu.pop()
 	cpu.pc = uint16(pcH)<<8 | uint16(pcL)
+	cpu.pc += 1
 }
 
 func sbc(cpu *Cpu6502) {
