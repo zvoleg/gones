@@ -2,13 +2,7 @@ package ppu
 
 import (
 	"fmt"
-	"time"
-
-	"github.com/zvoleg/gones/internal"
-	"github.com/zvoleg/gones/internal/cpu6502"
 )
-
-const clockRateNs = 186 * time.Nanosecond
 
 type lineType int
 
@@ -40,15 +34,14 @@ type Ppu struct {
 
 	dataBuffer byte
 
-	bus           PpuBus
-	cpuSignalLine chan cpu6502.Signal
+	bus PpuBus
 
 	dmaEnabled   bool
 	evenFrame    bool
 	clockCounter int
 }
 
-func NewPpu(interruptLine chan cpu6502.Signal) Ppu {
+func NewPpu() Ppu {
 	controllReg := controllReg{}
 	maskReg := maskReg{}
 	statusReg := statusReg{}
@@ -67,7 +60,6 @@ func NewPpu(interruptLine chan cpu6502.Signal) Ppu {
 		scrollRegister:  &scrollReg,
 		addressRegister: &addressReg,
 		bus:             nil,
-		cpuSignalLine:   interruptLine,
 		evenFrame:       false,
 		clockCounter:    0,
 	}
@@ -78,7 +70,6 @@ func (ppu *Ppu) InitBus(bus PpuBus) {
 }
 
 func (ppu *Ppu) Clock() {
-	clockStartTime := time.Now()
 	if ppu.dmaEnabled {
 		ppu.DmaClock()
 	}
@@ -97,7 +88,7 @@ func (ppu *Ppu) Clock() {
 	if lineNum == 241 && dotNum == 1 {
 		ppu.statusReg.setStatusFlag(V, true)
 		if ppu.controllReg.generateNmi {
-			ppu.cpuSignalLine <- cpu6502.Nmi
+			// TODO send interrupt signal
 		}
 	}
 	if lineNum == 261 && dotNum == 1 {
@@ -111,7 +102,6 @@ func (ppu *Ppu) Clock() {
 		return
 	}
 	ppu.clockCounter += 1
-	internal.ClockWaiter(clockStartTime, clockRateNs)
 }
 
 func getLineType(lineNum int) lineType {
@@ -168,7 +158,7 @@ func (ppu *Ppu) readVram() byte {
 
 func (ppu *Ppu) writeVram(data byte) {
 	address := ppu.addressRegister.value
-	fmt.Printf("Write into VRAM, address: %04X\n", address)
+	// fmt.Printf("Write into VRAM, address: %04X\n", address)
 	switch true {
 	case address <= 0x1FFF:
 		ppu.bus.PpuWrite(address, data)

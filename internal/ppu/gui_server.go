@@ -3,6 +3,7 @@ package ppu
 import (
 	"fmt"
 	"math/rand"
+	"time"
 
 	"golang.org/x/net/websocket"
 )
@@ -14,6 +15,8 @@ const (
 	nameTable   = "nameTable"
 	collor      = "collor"
 )
+
+const FRAME_DURATION = time.Duration(16666666) // 1 / 60 sec to nanosec
 
 type ImageProducer interface {
 	GetMainScreen() []byte
@@ -56,57 +59,78 @@ func (s *GuiServer) connectionHandler(ws *websocket.Conn) {
 }
 
 func (s *GuiServer) frameSender(ws *websocket.Conn) {
+	imgSize := 256 * 240
+	var imgBuf []byte = make([]byte, imgSize*4)
+	now := time.Now()
 	for {
-		imgSize := 256 * 240
-		var imgBuf []byte = make([]byte, imgSize*4)
-		for i := 0; i < imgSize*4; i += 4 {
-			dot := byte(rand.Intn(3) / 2)
-			imgBuf[i] = dot * byte(rand.Intn(256))
-			imgBuf[i+1] = dot * byte(rand.Intn(256))
-			imgBuf[i+2] = dot * byte(rand.Intn(256))
-			imgBuf[i+3] = 255
-		}
-		_, err := ws.Write(imgBuf)
-		if err != nil {
-			fmt.Println(err)
-			ws.Close()
-			return
+		elapsed := time.Now()
+		if elapsed.Sub(now) > FRAME_DURATION {
+			// TODO rendering by signal from ppu (frame_done) and sync with time 1/60 sec
+			for i := 0; i < imgSize*4; i += 4 {
+				dot := byte(rand.Intn(3) / 2)
+				imgBuf[i] = dot * byte(rand.Intn(256))
+				imgBuf[i+1] = dot * byte(rand.Intn(256))
+				imgBuf[i+2] = dot * byte(rand.Intn(256))
+				imgBuf[i+3] = 255
+			}
+			_, err := ws.Write(imgBuf)
+			if err != nil {
+				fmt.Println(err)
+				ws.Close()
+				return
+			}
+			now = elapsed
 		}
 	}
 }
 
 func (s *GuiServer) palletteSender(ws *websocket.Conn) {
+	now := time.Now()
 	for {
-		srcImg := s.imageProducer.GetCollorPallete()
-		_, err := ws.Write(srcImg)
-		if err != nil {
-			fmt.Println(err)
-			ws.Close()
-			return
+		elapsed := time.Now()
+		if elapsed.Sub(now) > FRAME_DURATION {
+			srcImg := s.imageProducer.GetCollorPallete()
+			_, err := ws.Write(srcImg)
+			if err != nil {
+				fmt.Println(err)
+				ws.Close()
+				return
+			}
+			now = elapsed
 		}
 	}
 }
 
 func (s *GuiServer) patternTableSender(ws *websocket.Conn) {
+	now := time.Now()
 	for {
-		srcImg := s.imageProducer.GetPatternTables()
-		_, err := ws.Write(srcImg)
-		if err != nil {
-			fmt.Println(err)
-			ws.Close()
-			return
+		elapsed := time.Now()
+		if elapsed.Sub(now) > FRAME_DURATION {
+			srcImg := s.imageProducer.GetPatternTables()
+			_, err := ws.Write(srcImg)
+			if err != nil {
+				fmt.Println(err)
+				ws.Close()
+				return
+			}
+			now = elapsed
 		}
 	}
 }
 
 func (s *GuiServer) nameTableSender(ws *websocket.Conn) {
+	now := time.Now()
 	for {
-		srcImg := s.imageProducer.GetNameTable()
-		_, err := ws.Write(srcImg)
-		if err != nil {
-			fmt.Println(err)
-			ws.Close()
-			return
+		elapsed := time.Now()
+		if elapsed.Sub(now) > FRAME_DURATION {
+			srcImg := s.imageProducer.GetNameTable()
+			_, err := ws.Write(srcImg)
+			if err != nil {
+				fmt.Println(err)
+				ws.Close()
+				return
+			}
+			now = elapsed
 		}
 	}
 }

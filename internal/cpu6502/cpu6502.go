@@ -1,18 +1,9 @@
 package cpu6502
 
-import (
-	"fmt"
-	"time"
-
-	"github.com/zvoleg/gones/internal"
-)
-
 type Bus6502 interface {
 	CpuRead(address uint16) byte
 	CpuWrite(address uint16, data byte)
 }
-
-const clockRateNs = 558 * time.Nanosecond
 
 const nmiVector uint16 = 0xFFFA
 const resVector uint16 = 0xFFFC
@@ -28,6 +19,11 @@ const (
 	DmaDisable
 )
 
+type CpuSignals interface {
+	interrupt(vec uint16)
+	reset()
+}
+
 type Cpu6502 struct {
 	a byte
 	x byte
@@ -42,45 +38,23 @@ type Cpu6502 struct {
 	operatorAdr uint16
 
 	bus          Bus6502
-	signalLine   chan Signal
 	dmaEnabled   bool
 	clockCounter uint
-	clockTimer   time.Time
 }
 
-func New(bus Bus6502, interruptLine chan Signal) Cpu6502 {
-	timer := time.Now()
-	cpu := Cpu6502{bus: bus, signalLine: interruptLine, clockTimer: timer}
+func New(bus Bus6502) Cpu6502 {
+	cpu := Cpu6502{bus: bus}
 	cpu.reset()
 	// cpu.pc = 0xC000
 	return cpu
 }
 
 func (cpu *Cpu6502) Clock() {
-	clockStartTime := time.Now()
-	select {
-	case signal := <-cpu.signalLine:
-		switch signal {
-		case Nmi:
-			cpu.interrupt(nmiVector)
-		case Irq:
-			if cpu.getFlag(I) == 0 {
-				cpu.interrupt(irqVector)
-			}
-		case Res:
-			cpu.reset()
-		case DmaEnable:
-			cpu.dmaEnabled = true
-		case DmaDisable:
-			cpu.dmaEnabled = false
-		}
-	default:
-	}
 	if cpu.dmaEnabled {
 		return
 	}
 
-	opcodeAddr := cpu.pc
+	// opcodeAddr := cpu.pc
 	opcode := cpu.readPc()
 	instr := instructionTable[opcode]
 	cpu.opcode = opcode
@@ -88,9 +62,8 @@ func (cpu *Cpu6502) Clock() {
 	cpu.fetch(instr.am.size)
 	instr.am.exec(cpu)
 	instr.op.exec(cpu)
-	fmt.Printf("a=%02X x=%02X Y=%02X st=%08b pc=%04X st_ptr=%02X | opcode=%02X ", cpu.a, cpu.x, cpu.y, cpu.status, opcodeAddr, cpu.s, cpu.opcode)
-	fmt.Println(instr.disassebly(cpu.instrData))
-	internal.ClockWaiter(clockStartTime, clockRateNs*time.Duration(cpu.clockCounter))
+	// fmt.Printf("a=%02X x=%02X Y=%02X st=%08b pc=%04X st_ptr=%02X | opcode=%02X ", cpu.a, cpu.x, cpu.y, cpu.status, opcodeAddr, cpu.s, cpu.opcode)
+	// fmt.Println(instr.disassebly(cpu.instrData))
 }
 
 func (cpu *Cpu6502) reset() {
@@ -103,7 +76,6 @@ func (cpu *Cpu6502) reset() {
 
 func (cpu *Cpu6502) interrupt(vector uint16) {
 	// save cpu backup on the stack
-	clockStartTime := time.Now()
 	pcH := byte(cpu.pc >> 8)
 	cpu.push(pcH)
 	pcL := byte(cpu.pc)
@@ -115,7 +87,6 @@ func (cpu *Cpu6502) interrupt(vector uint16) {
 	pcL = cpu.bus.CpuRead(vector)
 	pcH = cpu.bus.CpuRead(vector + 1)
 	cpu.pc = uint16(pcH)<<8 | uint16(pcL)
-	internal.ClockWaiter(clockStartTime, 7*clockRateNs)
 }
 
 func (cpu *Cpu6502) incrementPc() {

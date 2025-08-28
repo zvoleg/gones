@@ -1,10 +1,8 @@
 package ppu
 
-import "github.com/zvoleg/gones/internal/cpu6502"
-
 func (ppu *Ppu) InitDma(page byte) {
 	ppu.dmaEnabled = true
-	ppu.cpuSignalLine <- cpu6502.DmaEnable
+	// ppu.cpuSignalLine <- cpu6502.DmaEnable
 }
 
 func (ppu *Ppu) DmaClock() {
@@ -16,7 +14,7 @@ func (ppu *Ppu) DmaClock() {
 		ppu.oamAddressReg.increment()
 		if ppu.oamAddressReg.value&0x00FF == 0 {
 			ppu.dmaEnabled = false
-			ppu.cpuSignalLine <- cpu6502.DmaDisable
+			// ppu.cpuSignalLine <- cpu6502.DmaDisable
 		}
 	}
 }

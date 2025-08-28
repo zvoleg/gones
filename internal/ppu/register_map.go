@@ -1,7 +1,5 @@
 package ppu
 
-import "fmt"
-
 func (ppu *Ppu) RegisterRead(regAddress uint16) byte {
 	var data byte
 	switch regAddress {
@@ -29,7 +27,7 @@ func (ppu *Ppu) RegisterWrite(regAddress uint16, data byte) {
 	case 3:
 		ppu.oamAddressReg.write(data)
 	case 4:
-		fmt.Printf("Write into SRAM, address: %04X\n", ppu.oamAddressReg.value)
+		// fmt.Printf("Write into SRAM, address: %04X\n", ppu.oamAddressReg.value)
 		ppu.sram[ppu.oamAddressReg.value] = data
 		ppu.oamAddressReg.increment()
 	case 5:

@@ -13,15 +13,13 @@ import (
 )
 
 func main() {
-	wg := sync.WaitGroup{}
-
-	cpuInterruptLine := make(chan cpu6502.Signal, 3)
-	cartridge := cartridge.New("./nestest.nes")
-	ppuEmu := ppu.NewPpu(cpuInterruptLine)
+	cartridge := cartridge.New("./smb.nes")
+	ppuEmu := ppu.NewPpu()
 	joypad := controller.NewJoypad()
 	bus := bus.New(&cartridge, &ppuEmu, &joypad)
 	ppuEmu.InitBus(&bus)
-	cpu := cpu6502.New(&bus, cpuInterruptLine)
+	cpu := cpu6502.New(&bus)
+	wg := sync.WaitGroup{}
 
 	wg.Add(1)
 	go func() {
@@ -39,6 +37,14 @@ func main() {
 	go func() {
 		defer wg.Done()
 
+		http.HandleFunc("/", render_page)
+		http.ListenAndServe(":8081", nil)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
 		server := controller.NewControllerServer(&joypad)
 		http.Handle("/input", websocket.Handler(server.Handler))
 	}()
@@ -46,18 +52,18 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-
+		clock_counter := 0
 		for {
 			ppuEmu.Clock()
-		}
-	}()
-	go func() {
-		defer wg.Done()
-
-		for {
-			cpu.Clock()
+			if clock_counter%2 == 0 {
+				cpu.Clock()
+			}
 		}
 	}()
 
 	wg.Wait()
+}
+
+func render_page(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "web/index.html")
 }

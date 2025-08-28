@@ -21,16 +21,18 @@ function setupSocketAndCanvas(socket, canvasName, width, height, scale) {
   canvas.style.imageRendering = "pixelated";
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   ctx.imageSmoothingEnabled = false;
+
+  let imgDataBuffer = new Uint8ClampedArray(width*height*4);
+  let imgData = ctx.createImageData(width, height);
   
   socket.onopen = () => {
     socket.send(canvasName);
   }
   
   socket.onmessage = (event) => {
-    let imgData = new Uint8ClampedArray(event.data);
-    let img = ctx.getImageData(0, 0, width, height);
-    img.data.set(imgData);
-    ctx.putImageData(img, 0, 0);
+    imgDataBuffer.set(new Uint8ClampedArray(event.data));
+    imgData.data.set(imgDataBuffer);
+    ctx.putImageData(imgData, 0, 0);
   }
 
   socket.onerror = (err) => {
