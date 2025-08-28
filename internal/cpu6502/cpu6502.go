@@ -50,10 +50,6 @@ func New(bus Bus6502) Cpu6502 {
 }
 
 func (cpu *Cpu6502) Clock() {
-	if cpu.dmaEnabled {
-		return
-	}
-
 	// opcodeAddr := cpu.pc
 	opcode := cpu.readPc()
 	instr := instructionTable[opcode]

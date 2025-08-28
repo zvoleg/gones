@@ -13,7 +13,7 @@ type Cartridge interface {
 	Mirroring() ppu.Mirroring
 }
 
-type PpuExposedInterface interface {
+type PpuRegisters interface {
 	RegisterRead(regAddress uint16) byte
 	RegisterWrite(regAddress uint16, data byte)
 	InitDma(page byte)
@@ -22,11 +22,11 @@ type PpuExposedInterface interface {
 type Bus struct {
 	ram            [0x0800]byte
 	rom            Cartridge
-	ppuRegisterMap PpuExposedInterface
+	ppuRegisterMap PpuRegisters
 	inputInterface controller.InputInterface
 }
 
-func New(rom Cartridge, ppuRegisterMap PpuExposedInterface, inputInterface controller.InputInterface) Bus {
+func New(rom Cartridge, ppuRegisterMap PpuRegisters, inputInterface controller.InputInterface) Bus {
 	return Bus{
 		rom:            rom,
 		ppuRegisterMap: ppuRegisterMap,
