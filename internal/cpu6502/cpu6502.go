@@ -1,5 +1,7 @@
 package cpu6502
 
+import "fmt"
+
 type Bus6502 interface {
 	CpuRead(address uint16) byte
 	CpuWrite(address uint16, data byte)
@@ -19,11 +21,6 @@ const (
 	DmaDisable
 )
 
-type CpuSignals interface {
-	interrupt(vec uint16)
-	reset()
-}
-
 type Cpu6502 struct {
 	a byte
 	x byte
@@ -38,7 +35,6 @@ type Cpu6502 struct {
 	operatorAdr uint16
 
 	bus          Bus6502
-	dmaEnabled   bool
 	clockCounter uint
 }
 
@@ -50,16 +46,20 @@ func New(bus Bus6502) Cpu6502 {
 }
 
 func (cpu *Cpu6502) Clock() {
-	// opcodeAddr := cpu.pc
-	opcode := cpu.readPc()
-	instr := instructionTable[opcode]
-	cpu.opcode = opcode
-	cpu.clockCounter = instr.clocks
-	cpu.fetch(instr.am.size)
-	instr.am.exec(cpu)
-	instr.op.exec(cpu)
-	// fmt.Printf("a=%02X x=%02X Y=%02X st=%08b pc=%04X st_ptr=%02X | opcode=%02X ", cpu.a, cpu.x, cpu.y, cpu.status, opcodeAddr, cpu.s, cpu.opcode)
-	// fmt.Println(instr.disassebly(cpu.instrData))
+	if cpu.clockCounter == 0 {
+		opcodeAddr := cpu.pc
+		opcode := cpu.readPc()
+		instr := instructionTable[opcode]
+		cpu.opcode = opcode
+		cpu.clockCounter = instr.clocks
+		cpu.fetch(instr.am.size)
+		instr.am.exec(cpu)
+		instr.op.exec(cpu)
+		fmt.Printf("a=%02X x=%02X Y=%02X st=%08b pc=%04X st_ptr=%02X | opcode=%02X ", cpu.a, cpu.x, cpu.y, cpu.status, opcodeAddr, cpu.s, cpu.opcode)
+		fmt.Println(instr.disassebly(cpu.instrData))
+	} else {
+		cpu.clockCounter -= 1
+	}
 }
 
 func (cpu *Cpu6502) reset() {
@@ -70,7 +70,18 @@ func (cpu *Cpu6502) reset() {
 	cpu.status = 0x24 // set flags U, I
 }
 
-func (cpu *Cpu6502) interrupt(vector uint16) {
+func (cpu *Cpu6502) Interrupt(signal Signal) {
+	vector := resVector
+	switch signal {
+	case Irq:
+		if cpu.getFlag(I) != 0 {
+			return
+		}
+		vector = irqVector
+	case Nmi:
+		vector = nmiVector
+	}
+	cpu.clockCounter = 7 // interrupt handler clocks
 	// save cpu backup on the stack
 	pcH := byte(cpu.pc >> 8)
 	cpu.push(pcH)

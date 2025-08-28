@@ -48,7 +48,9 @@ func main() {
 	go func() {
 		defer wg.Done()
 
-		device.Clock()
+		for {
+			device.Clock()
+		}
 	}()
 
 	wg.Wait()

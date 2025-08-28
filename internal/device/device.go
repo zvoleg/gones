@@ -1,6 +1,8 @@
 package device
 
 import (
+	"fmt"
+
 	"github.com/zvoleg/gones/internal/bus"
 	"github.com/zvoleg/gones/internal/cartridge"
 	"github.com/zvoleg/gones/internal/controller"
@@ -34,8 +36,17 @@ func NewDevice(programPath string) Device {
 
 func (d *Device) Clock() {
 	d.ppu.Clock()
-	if d.clockCounter%2 == 0 {
-		d.cpu.Clock()
+	if d.clockCounter%3 == 0 {
+		if d.ppu.DmaEnable() {
+			// TODO create dma clock waiter. DMA starts from odd clock cycle
+			d.ppu.DmaClock()
+		} else {
+			if d.ppu.InterruptSignal() {
+				fmt.Println("send NMI interrupt")
+				d.cpu.Interrupt(cpu6502.Nmi)
+			}
+			d.cpu.Clock()
+		}
 	}
 	d.clockCounter += 1
 }

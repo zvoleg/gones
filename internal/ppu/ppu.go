@@ -36,7 +36,11 @@ type Ppu struct {
 
 	bus PpuBus
 
-	dmaEnabled   bool
+	dmaEnabled bool
+	dmaByte    byte
+
+	interruptSignal bool
+
 	evenFrame    bool
 	clockCounter int
 }
@@ -70,9 +74,6 @@ func (ppu *Ppu) InitBus(bus PpuBus) {
 }
 
 func (ppu *Ppu) Clock() {
-	if ppu.dmaEnabled {
-		ppu.DmaClock()
-	}
 	if ppu.clockCounter == 0 && !ppu.evenFrame {
 		ppu.clockCounter += 1
 		return
@@ -88,7 +89,7 @@ func (ppu *Ppu) Clock() {
 	if lineNum == 241 && dotNum == 1 {
 		ppu.statusReg.setStatusFlag(V, true)
 		if ppu.controllReg.generateNmi {
-			// TODO send interrupt signal
+			ppu.interruptSignal = true
 		}
 	}
 	if lineNum == 261 && dotNum == 1 {
@@ -102,6 +103,12 @@ func (ppu *Ppu) Clock() {
 		return
 	}
 	ppu.clockCounter += 1
+}
+
+func (ppu *Ppu) InterruptSignal() bool {
+	signal := ppu.interruptSignal
+	ppu.interruptSignal = false
+	return signal
 }
 
 func getLineType(lineNum int) lineType {
