@@ -11,8 +11,8 @@ import (
 )
 
 type Device struct {
-	cpu    cpu6502.Cpu6502
-	ppu    ppu.Ppu
+	cpu    *cpu6502.Cpu6502
+	ppu    *ppu.Ppu
 	joypad controller.Joypad
 
 	clockCounter uint64
@@ -26,8 +26,8 @@ func NewDevice(programPath string) Device {
 	ppuEmu.InitBus(&bus)
 	cpu := cpu6502.New(&bus)
 	return Device{
-		cpu:    cpu,
-		ppu:    ppuEmu,
+		cpu:    &cpu,
+		ppu:    &ppuEmu,
 		joypad: joypad,
 
 		clockCounter: 0,
@@ -52,7 +52,7 @@ func (d *Device) Clock() {
 }
 
 func (d *Device) GetImageProducer() ppu.ImageProducer {
-	return &d.ppu
+	return d.ppu
 }
 
 func (d *Device) GetJoypadConnector() controller.Connector {
