@@ -1,8 +1,6 @@
 package device
 
 import (
-	"fmt"
-
 	"github.com/zvoleg/gones/internal/bus"
 	"github.com/zvoleg/gones/internal/cartridge"
 	"github.com/zvoleg/gones/internal/controller"
@@ -15,7 +13,8 @@ type Device struct {
 	ppu    *ppu.Ppu
 	joypad controller.Joypad
 
-	clockCounter uint64
+	dmaClcokWaiter bool
+	clockCounter   uint64
 }
 
 func NewDevice(programPath string) Device {
@@ -30,7 +29,8 @@ func NewDevice(programPath string) Device {
 		ppu:    &ppuEmu,
 		joypad: joypad,
 
-		clockCounter: 0,
+		dmaClcokWaiter: true,
+		clockCounter:   0,
 	}
 }
 
@@ -38,11 +38,9 @@ func (d *Device) Clock() {
 	d.ppu.Clock()
 	if d.clockCounter%3 == 0 {
 		if d.ppu.DmaEnable() {
-			// TODO create dma clock waiter. DMA starts from odd clock cycle
-			d.ppu.DmaClock()
+			d.dmaClock()
 		} else {
 			if d.ppu.InterruptSignal() {
-				fmt.Println("send NMI interrupt")
 				d.cpu.Interrupt(cpu6502.Nmi)
 			}
 			d.cpu.Clock()
@@ -57,4 +55,14 @@ func (d *Device) GetImageProducer() ppu.ImageProducer {
 
 func (d *Device) GetJoypadConnector() controller.Connector {
 	return &d.joypad
+}
+
+func (d *Device) dmaClock() {
+	if d.ppu.DmaClockWaiter() {
+		if d.clockCounter%2 == 1 {
+			d.ppu.ResetDmaClockWaiter()
+		}
+	} else {
+		d.ppu.DmaClock()
+	}
 }

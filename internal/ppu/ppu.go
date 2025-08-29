@@ -36,8 +36,9 @@ type Ppu struct {
 
 	bus PpuBus
 
-	dmaEnabled bool
-	dmaByte    byte
+	dmaEnabled     bool
+	dmaByte        byte
+	dmaClockWaiter bool
 
 	interruptSignal bool
 
@@ -64,9 +65,22 @@ func NewPpu() Ppu {
 		scrollRegister:  &scrollReg,
 		addressRegister: &addressReg,
 		bus:             nil,
-		evenFrame:       false,
-		clockCounter:    0,
+
+		dmaEnabled:     false,
+		dmaByte:        0,
+		dmaClockWaiter: false,
+
+		evenFrame:    false,
+		clockCounter: 0,
 	}
+}
+
+func (ppu *Ppu) DmaClockWaiter() bool {
+	return ppu.dmaClockWaiter
+}
+
+func (ppu *Ppu) ResetDmaClockWaiter() {
+	ppu.dmaClockWaiter = false
 }
 
 func (ppu *Ppu) InitBus(bus PpuBus) {

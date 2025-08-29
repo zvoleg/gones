@@ -2,6 +2,7 @@ package ppu
 
 func (ppu *Ppu) InitDma(page byte) {
 	ppu.dmaEnabled = true
+	ppu.dmaClockWaiter = true
 }
 
 func (ppu *Ppu) DmaClock() {
