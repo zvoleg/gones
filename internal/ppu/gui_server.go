@@ -10,7 +10,7 @@ import (
 
 const (
 	frame       = "frame"
-	pallette    = "pallette"
+	palette     = "palette"
 	patterTable = "pattern"
 	nameTable   = "nameTable"
 	collor      = "collor"
@@ -22,7 +22,7 @@ type ImageProducer interface {
 	GetMainScreen() []byte
 	GetPatternTables() []byte
 	GetNameTable() []byte
-	GetCollorPallete() []byte
+	GetCollorPalette() []byte
 }
 
 type GuiServer struct {
@@ -49,8 +49,8 @@ func (s *GuiServer) connectionHandler(ws *websocket.Conn) {
 	switch guiPart {
 	case frame:
 		s.frameSender(ws)
-	case pallette:
-		s.palletteSender(ws)
+	case palette:
+		s.paletteSender(ws)
 	case patterTable:
 		s.patternTableSender(ws)
 	case nameTable:
@@ -84,12 +84,12 @@ func (s *GuiServer) frameSender(ws *websocket.Conn) {
 	}
 }
 
-func (s *GuiServer) palletteSender(ws *websocket.Conn) {
+func (s *GuiServer) paletteSender(ws *websocket.Conn) {
 	now := time.Now()
 	for {
 		elapsed := time.Now()
 		if elapsed.Sub(now) > FRAME_DURATION {
-			srcImg := s.imageProducer.GetCollorPallete()
+			srcImg := s.imageProducer.GetCollorPalette()
 			_, err := ws.Write(srcImg)
 			if err != nil {
 				fmt.Println(err)

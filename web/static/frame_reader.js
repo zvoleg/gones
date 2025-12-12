@@ -1,14 +1,14 @@
 var frameSocket = new WebSocket("ws://localhost:3000/frame");
 frameSocket.binaryType = "arraybuffer";
-var palletteSocket = new WebSocket("ws://localhost:3000/pallette");
-palletteSocket.binaryType = "arraybuffer";
+var paletteSocket = new WebSocket("ws://localhost:3000/palette");
+paletteSocket.binaryType = "arraybuffer";
 var patternSocket = new WebSocket("ws://localhost:3000/pattern");
 patternSocket.binaryType = "arraybuffer";
 var nameTableSocket = new WebSocket("ws://localhost:3000/name");
 nameTableSocket.binaryType = "arraybuffer";
 
 setupSocketAndCanvas(frameSocket, "frame", 256, 240, 3)
-setupSocketAndCanvas(palletteSocket, "pallette", 9, 5, 20)
+setupSocketAndCanvas(paletteSocket, "palette", 9, 5, 20)
 setupSocketAndCanvas(patternSocket, "pattern", 256, 128, 2)
 setupSocketAndCanvas(nameTableSocket, "nameTable", 512, 512, 1)
 
