@@ -20,7 +20,7 @@ func main() {
 
 		server := ppu.NewGuiServer(device.GetImageProducer())
 		http.Handle("/frame", websocket.Handler(server.Handler))
-		http.Handle("/pallette", websocket.Handler(server.Handler))
+		http.Handle("/palette", websocket.Handler(server.Handler))
 		http.Handle("/pattern", websocket.Handler(server.Handler))
 		http.Handle("/name", websocket.Handler(server.Handler))
 		http.ListenAndServe(":3000", nil)
