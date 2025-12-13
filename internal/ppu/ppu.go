@@ -29,7 +29,8 @@ type Ppu struct {
 	statusReg       *statusReg
 	oamAddressReg   *oamAddressReg
 	oamDataReg      *oamDataReg
-	scrollRegister  *scrollRegister
+	internalAddrReg *internalAddrReg
+	// scrollRegister  *scrollRegister
 	addressRegister *addressRegister
 
 	dataBuffer byte
@@ -52,8 +53,9 @@ func NewPpu() Ppu {
 	statusReg := statusReg{}
 	oamAddressReg := oamAddressReg{}
 	oamDataReg := oamDataReg{}
+	internalAddrReg := internalAddrReg{}
 	latch := false // scroll reg and address reg latch (selects LSB and HSB)
-	scrollReg := scrollRegister{latch: &latch}
+	// scrollReg := scrollRegister{latch: &latch}
 	addressReg := addressRegister{latch: &latch}
 
 	return Ppu{
@@ -62,7 +64,8 @@ func NewPpu() Ppu {
 		statusReg:       &statusReg,
 		oamAddressReg:   &oamAddressReg,
 		oamDataReg:      &oamDataReg,
-		scrollRegister:  &scrollReg,
+		internalAddrReg: &internalAddrReg,
+		// scrollRegister:  &scrollReg,
 		addressRegister: &addressReg,
 		bus:             nil,
 
@@ -110,6 +113,7 @@ func (ppu *Ppu) Clock() {
 		ppu.statusReg.setStatusFlag(V, false)
 		ppu.statusReg.setStatusFlag(S, false)
 		ppu.statusReg.setStatusFlag(O, false)
+		ppu.internalAddrReg.updateCurValue()
 	}
 	if ppu.clockCounter > 89342 {
 		ppu.clockCounter = 0
@@ -138,6 +142,7 @@ func getLineType(lineNum int) lineType {
 }
 
 func (ppu *Ppu) readVram() byte {
+	// address := ppu.internalAddrReg.cur_value
 	address := ppu.addressRegister.value
 	var data byte
 	switch true {
@@ -172,12 +177,13 @@ func (ppu *Ppu) readVram() byte {
 		}
 		data = ppu.paletteRam[address]
 	default:
-		fmt.Printf("Wrong address for writing into vram: %04X\n", address)
+		fmt.Printf("Wrong address for writing into vram: 0x%04X\n", address)
 	}
 	return data
 }
 
 func (ppu *Ppu) writeVram(data byte) {
+	// address := ppu.internalAddrReg.cur_value
 	address := ppu.addressRegister.value
 	// fmt.Printf("Write into VRAM, address: %04X\n", address)
 	switch true {
@@ -213,6 +219,6 @@ func (ppu *Ppu) writeVram(data byte) {
 			ppu.paletteRam[address] = data
 		}
 	default:
-		fmt.Printf("Wrong address for writing into vram: %04X\n", address)
+		fmt.Printf("Wrong address for writing into vram: 0x%04X\n", address)
 	}
 }
