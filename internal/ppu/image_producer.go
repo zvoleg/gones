@@ -40,7 +40,7 @@ func (ppu *Ppu) readPatternTable(img *image, table uint16) {
 			for bit := 0; bit < 8; bit += 1 {
 				offset := 7 - bit
 				dotBits := ((plane1>>offset)<<1)&2 | (plane0>>offset)&1
-				d := ppu.getCollor(4, dotBits)
+				d := ppu.getColor(4, dotBits)
 				img.setDot(int(x), y, d)
 				x += 1
 			}
@@ -77,7 +77,7 @@ func (ppu *Ppu) readNameTable(img *image, table int) {
 			for bit := 0; bit < 8; bit += 1 {
 				offset := 7 - bit
 				dotBits := ((plane1>>offset)<<1)&2 | (plane0>>offset)&1
-				d := ppu.getCollor(4, dotBits)
+				d := ppu.getColor(4, dotBits)
 				img.setDot(x, y, d)
 				x += 1
 			}
@@ -92,11 +92,11 @@ func (ppu *Ppu) readNameTable(img *image, table int) {
 	}
 }
 
-func (ppu *Ppu) GetCollorPalette() []byte {
+func (ppu *Ppu) GetColorPalette() []byte {
 	img := newImage(9, 5)
 	x := 0
 	y := 0
-	color := ppu.getCollor(0, 0)
+	color := ppu.getColor(0, 0)
 	img.setDot(x, y, color)
 	y += 1
 	for paletteId := 0; paletteId < 4; paletteId += 1 {
@@ -104,7 +104,7 @@ func (ppu *Ppu) GetCollorPalette() []byte {
 			if paletteId == 0 && colorId == 0 {
 				continue
 			}
-			color = ppu.getCollor(byte(paletteId), byte(colorId))
+			color = ppu.getColor(byte(paletteId), byte(colorId))
 			img.setDot(x, y, color)
 			x += 1
 			if x == 4 {
@@ -120,7 +120,7 @@ func (ppu *Ppu) GetCollorPalette() []byte {
 			if paletteId == 4 && colorId == 0 {
 				continue
 			}
-			color = ppu.getCollor(byte(paletteId), byte(colorId))
+			color = ppu.getColor(byte(paletteId), byte(colorId))
 			img.setDot(x, y, color)
 			x += 1
 			if x == 9 {
@@ -132,7 +132,7 @@ func (ppu *Ppu) GetCollorPalette() []byte {
 	return img.buff
 }
 
-func (ppu *Ppu) getCollor(paletteId byte, dotBits byte) color {
+func (ppu *Ppu) getColor(paletteId byte, dotBits byte) color {
 	var colorId byte
 	if dotBits != 0 {
 		colorId = ppu.paletteRam[paletteId*4+dotBits]

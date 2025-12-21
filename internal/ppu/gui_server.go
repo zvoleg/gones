@@ -12,7 +12,6 @@ const (
 	palette     = "palette"
 	patterTable = "pattern"
 	nameTable   = "nameTable"
-	collor      = "collor"
 )
 
 const FRAME_DURATION = time.Duration(16666666) // 1 / 60 sec to nanosec
@@ -21,7 +20,7 @@ type ImageProducer interface {
 	GetMainScreen() []byte
 	GetPatternTables() []byte
 	GetNameTable() []byte
-	GetCollorPalette() []byte
+	GetColorPalette() []byte
 }
 
 type GuiServer struct {
@@ -80,7 +79,7 @@ func (s *GuiServer) paletteSender(ws *websocket.Conn) {
 	for {
 		elapsed := time.Now()
 		if elapsed.Sub(now) > FRAME_DURATION {
-			srcImg := s.imageProducer.GetCollorPalette()
+			srcImg := s.imageProducer.GetColorPalette()
 			_, err := ws.Write(srcImg)
 			if err != nil {
 				fmt.Println(err)
