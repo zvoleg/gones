@@ -2,6 +2,7 @@ package ppu
 
 import (
 	"fmt"
+	"math/rand"
 )
 
 type lineType int
@@ -23,6 +24,10 @@ type Ppu struct {
 	nameTable  [0x0800]byte
 	paletteRam [0x0020]byte
 	sram       [0x100]byte
+
+	screen     image // screen size 256x240, 4 byte per pixel (RGBA)
+	screenPosX int
+	screenPosY int
 
 	controllReg     *controllReg
 	maskReg         *maskReg
@@ -59,6 +64,8 @@ func NewPpu() Ppu {
 	addressReg := addressRegister{latch: &latch}
 
 	return Ppu{
+		screen: newImage(256, 240),
+
 		controllReg:     &controllReg,
 		maskReg:         &maskReg,
 		statusReg:       &statusReg,
@@ -101,12 +108,6 @@ func (ppu *Ppu) Clock() {
 	line := getLineType(lineNum)
 
 	if ppu.maskReg.renderingEnabled() {
-		if line == Visible && dotNum < 256 {
-			ppu.internalAddrReg.incrementCoarseX()
-		}
-		if line == Visible && dotNum == 256 {
-			ppu.internalAddrReg.incrementY()
-		}
 		if dotNum == 257 { // copy horizontal position from tmp register
 			ppu.internalAddrReg.copyHorizontalPosition()
 		}
@@ -114,13 +115,40 @@ func (ppu *Ppu) Clock() {
 			ppu.internalAddrReg.copyVerticalPosition()
 		}
 
-		if line == Visible {
-			//TODO fetch background pixel
+		if line == Visible && dotNum < 256 {
+			colorId := ppu.readRam(0x3F00) // fetch background pixel
+			color := paletteColors[colorId]
+
 			//TODO fetch plane pixel
 			//TODO fetch sprite pixel
+
+			if ppu.screenPosX < 256 && ppu.screenPosY < 240 {
+				ppu.screen.setDot(ppu.screenPosX, ppu.screenPosY, color)
+			} else {
+				fmt.Printf("Wrong screen coordinates %d %d\n", ppu.screenPosX, ppu.screenPosY)
+			}
+		}
+		if line == Visible && dotNum < 256 {
+			ppu.internalAddrReg.incrementCoarseX()
+			ppu.screenPosX += 1
+		}
+		if line == Visible && dotNum == 256 {
+			ppu.internalAddrReg.incrementY()
+			ppu.screenPosY += 1
+			ppu.screenPosX = 0
 		}
 	} else {
-		// TODO make noise image?
+		colorId := rand.Intn(len(paletteColors))
+		color := paletteColors[colorId]
+		ppu.screen.setDot(ppu.screenPosX, ppu.screenPosY, color)
+		ppu.screenPosX += 1
+		if ppu.screenPosX == 256 {
+			ppu.screenPosY += 1
+			ppu.screenPosX = 0
+		}
+		if ppu.screenPosY == 240 {
+			ppu.screenPosY = 0
+		}
 	}
 
 	if line == Visible || line == PreRender && dotNum >= 257 && dotNum <= 320 {
@@ -137,6 +165,8 @@ func (ppu *Ppu) Clock() {
 		ppu.statusReg.setStatusFlag(S, false)
 		ppu.statusReg.setStatusFlag(O, false)
 		ppu.internalAddrReg.updateCurValue()
+		ppu.screenPosX = 0
+		ppu.screenPosY = 0
 	}
 	if ppu.clockCounter > 89342 {
 		ppu.clockCounter = 0

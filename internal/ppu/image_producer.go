@@ -9,8 +9,7 @@ func (i *image) setDot(x, y int, dot color) {
 }
 
 func (ppu *Ppu) GetMainScreen() []byte {
-	buffer := make([]byte, 1024)
-	return buffer
+	return ppu.screen.buff
 }
 
 func (ppu *Ppu) GetPatternTables() []byte {
