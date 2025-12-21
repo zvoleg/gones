@@ -11,7 +11,7 @@ func (ppu *Ppu) RegisterRead(regAddress uint16) byte {
 		ppu.statusReg.setStatusFlag(V, false)
 	case 7:
 		data = ppu.dataBuffer
-		ppu.dataBuffer = ppu.readVram()
+		ppu.dataBuffer = ppu.readRam(ppu.internalAddrReg.cur_value)
 		if ppu.internalAddrReg.cur_value >= 0x3F00 {
 			data = ppu.dataBuffer
 		}
@@ -41,7 +41,7 @@ func (ppu *Ppu) RegisterWrite(regAddress uint16, data byte) {
 		ppu.addressRegister.write(data)
 		fmt.Printf("addr: 0x%04X | intern: 0x%04X\n", ppu.addressRegister.value, ppu.internalAddrReg.cur_value)
 	case 7:
-		ppu.writeVram(data)
+		ppu.writeVram(ppu.internalAddrReg.cur_value, data)
 		ppu.internalAddrReg.increment(ppu.controllReg.incrementer)
 		ppu.addressRegister.increment(ppu.controllReg.incrementer)
 	}

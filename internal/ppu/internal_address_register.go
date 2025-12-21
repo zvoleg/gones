@@ -7,6 +7,47 @@ type internalAddrReg struct {
 	latch     bool
 }
 
+func (reg *internalAddrReg) incrementCoarseX() {
+	if reg.cur_value&0x001F == 31 {
+		reg.cur_value &= ^uint16(0x001F)
+		reg.switchBit(0x0400)
+	} else {
+		reg.cur_value += 1
+	}
+}
+
+func (reg *internalAddrReg) incrementY() {
+	if reg.cur_value&0x7000 != 0x7000 {
+		reg.cur_value += 0x1000 // increment fine Y
+	} else {
+		reg.cur_value &= ^uint16(0x7000) // clear fine Y
+		coarseY := (reg.cur_value & 0x03E0) >> 5
+		switch coarseY {
+		case 29:
+			coarseY = 0
+			reg.switchBit(0x0800)
+		case 31:
+			coarseY = 0
+		default:
+			coarseY += 1
+		}
+		reg.cur_value &= ^uint16(0x03E00)
+		reg.cur_value |= coarseY << 5
+	}
+}
+
+func (reg *internalAddrReg) copyHorizontalPosition() {
+	mask := uint16(0x041F) // horizontal component of address
+	reg.cur_value &= ^mask // clear bits
+	reg.cur_value |= reg.tmp_value & mask
+}
+
+func (reg *internalAddrReg) copyVerticalPosition() {
+	mask := uint16(0x7BE0) // vertical component of address
+	reg.cur_value &= ^mask
+	reg.cur_value |= reg.tmp_value & mask
+}
+
 func (reg *internalAddrReg) setNameTable(data byte) {
 	reg.tmp_value |= uint16((data & 0x3)) << 10
 }
@@ -59,4 +100,13 @@ func (reg *internalAddrReg) updateCurValue() {
 
 func (reg *internalAddrReg) increment(incrementer uint16) {
 	reg.cur_value += incrementer
+}
+
+func (reg *internalAddrReg) switchBit(bit uint16) {
+	selectedBit := reg.cur_value&bit != 0
+	if selectedBit {
+		reg.cur_value &= ^uint16(bit) // clear bit
+	} else {
+		reg.cur_value |= uint16(bit) // set bit
+	}
 }

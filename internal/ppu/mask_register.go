@@ -28,6 +28,10 @@ func (r *maskReg) spritesEnabled() bool {
 	return (r.value & 0x10) != 0
 }
 
+func (r *maskReg) renderingEnabled() bool {
+	return r.backgroundEnabled() || r.spritesEnabled()
+}
+
 // 0x20 Emphasize red (green on PAL/Dendy)
 // 0x40 Emphasize green (red on PAL/Dendy)
 // 0x80 Emphasize blue

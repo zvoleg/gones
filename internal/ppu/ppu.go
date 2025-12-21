@@ -100,6 +100,29 @@ func (ppu *Ppu) Clock() {
 	dotNum := ppu.clockCounter % 341
 	line := getLineType(lineNum)
 
+	if ppu.maskReg.renderingEnabled() {
+		if line == Visible && dotNum < 256 {
+			ppu.internalAddrReg.incrementCoarseX()
+		}
+		if line == Visible && dotNum == 256 {
+			ppu.internalAddrReg.incrementY()
+		}
+		if dotNum == 257 { // copy horizontal position from tmp register
+			ppu.internalAddrReg.copyHorizontalPosition()
+		}
+		if line == PreRender && (dotNum >= 280 && dotNum < 304) {
+			ppu.internalAddrReg.copyVerticalPosition()
+		}
+
+		if line == Visible {
+			//TODO fetch background pixel
+			//TODO fetch plane pixel
+			//TODO fetch sprite pixel
+		}
+	} else {
+		// TODO make noise image?
+	}
+
 	if line == Visible || line == PreRender && dotNum >= 257 && dotNum <= 320 {
 		ppu.oamAddressReg.value = 0
 	}
@@ -109,7 +132,7 @@ func (ppu *Ppu) Clock() {
 			ppu.interruptSignal = true
 		}
 	}
-	if lineNum == 261 && dotNum == 1 {
+	if line == PreRender && dotNum == 1 {
 		ppu.statusReg.setStatusFlag(V, false)
 		ppu.statusReg.setStatusFlag(S, false)
 		ppu.statusReg.setStatusFlag(O, false)
@@ -141,9 +164,7 @@ func getLineType(lineNum int) lineType {
 	return line
 }
 
-func (ppu *Ppu) readVram() byte {
-	// address := ppu.internalAddrReg.cur_value
-	address := ppu.addressRegister.value
+func (ppu *Ppu) readRam(address uint16) byte {
 	var data byte
 	switch true {
 	case address <= 0x1FFF:
@@ -182,9 +203,7 @@ func (ppu *Ppu) readVram() byte {
 	return data
 }
 
-func (ppu *Ppu) writeVram(data byte) {
-	// address := ppu.internalAddrReg.cur_value
-	address := ppu.addressRegister.value
+func (ppu *Ppu) writeVram(address uint16, data byte) {
 	// fmt.Printf("Write into VRAM, address: %04X\n", address)
 	switch true {
 	case address <= 0x1FFF:
