@@ -29,13 +29,15 @@ type Ppu struct {
 	screenPosX int
 	screenPosY int
 
+	planeDataBuffer planeDataBuffer
+	shiftRegiseter  shiftRegiseter
+
 	controllReg     *controllReg
 	maskReg         *maskReg
 	statusReg       *statusReg
 	oamAddressReg   *oamAddressReg
 	oamDataReg      *oamDataReg
 	internalAddrReg *internalAddrReg
-	// scrollRegister  *scrollRegister
 	addressRegister *addressRegister
 
 	dataBuffer byte
@@ -108,18 +110,17 @@ func (ppu *Ppu) Clock() {
 	line := getLineType(lineNum)
 
 	if ppu.maskReg.renderingEnabled() {
-		if dotNum == 257 { // copy horizontal position from tmp register
-			ppu.internalAddrReg.copyHorizontalPosition()
-		}
-		if line == PreRender && (dotNum >= 280 && dotNum < 304) {
-			ppu.internalAddrReg.copyVerticalPosition()
-		}
-
 		if line == Visible && dotNum < 256 {
 			colorId := ppu.readRam(0x3F00) // fetch background pixel
 			color := paletteColors[colorId]
 
 			//TODO fetch plane pixel
+			pixel, palettId := ppu.shiftRegiseter.popPixel()
+			if pixel != 0 {
+				colorId := ppu.readRam(uint16(0x3F00) + uint16(palettId+pixel))
+				color = paletteColors[colorId]
+			}
+
 			//TODO fetch sprite pixel
 
 			if ppu.screenPosX < 256 && ppu.screenPosY < 240 {
@@ -128,6 +129,16 @@ func (ppu *Ppu) Clock() {
 				fmt.Printf("Wrong screen coordinates %d %d\n", ppu.screenPosX, ppu.screenPosY)
 			}
 		}
+		if (line == Visible || line == PreRender) && (dotNum < 256 || (dotNum >= 321 && dotNum < 338)) {
+			ppu.updatePlaneDataBuffer(dotNum)
+			if dotNum%8 == 0 {
+				dataLow := ppu.planeDataBuffer.tileDataLow
+				dataHigh := ppu.planeDataBuffer.tileDataHigh
+				paletteId := ppu.planeDataBuffer.attributeData
+				ppu.shiftRegiseter.pushData(dataLow, dataHigh, paletteId)
+			}
+		}
+
 		if line == Visible && dotNum < 256 {
 			ppu.internalAddrReg.incrementCoarseX()
 			ppu.screenPosX += 1
@@ -136,6 +147,12 @@ func (ppu *Ppu) Clock() {
 			ppu.internalAddrReg.incrementY()
 			ppu.screenPosY += 1
 			ppu.screenPosX = 0
+		}
+		if dotNum == 257 { // copy horizontal position from tmp register
+			ppu.internalAddrReg.copyHorizontalPosition()
+		}
+		if line == PreRender && (dotNum >= 280 && dotNum < 304) { // copy vertical position from tmp register
+			ppu.internalAddrReg.copyVerticalPosition()
 		}
 	} else {
 		colorId := rand.Intn(len(paletteColors))
@@ -164,7 +181,6 @@ func (ppu *Ppu) Clock() {
 		ppu.statusReg.setStatusFlag(V, false)
 		ppu.statusReg.setStatusFlag(S, false)
 		ppu.statusReg.setStatusFlag(O, false)
-		ppu.internalAddrReg.updateCurValue()
 		ppu.screenPosX = 0
 		ppu.screenPosY = 0
 	}
@@ -233,7 +249,7 @@ func (ppu *Ppu) readRam(address uint16) byte {
 	return data
 }
 
-func (ppu *Ppu) writeVram(address uint16, data byte) {
+func (ppu *Ppu) writeRam(address uint16, data byte) {
 	// fmt.Printf("Write into VRAM, address: %04X\n", address)
 	switch true {
 	case address <= 0x1FFF:
@@ -269,5 +285,34 @@ func (ppu *Ppu) writeVram(address uint16, data byte) {
 		}
 	default:
 		fmt.Printf("Wrong address for writing into vram: 0x%04X\n", address)
+	}
+}
+
+func (ppu *Ppu) updatePlaneDataBuffer(dotNum int) {
+	switch dotNum % 8 {
+	case 1:
+		tileAddress := 0x2000 | ppu.internalAddrReg.curValue&0x0FFF
+		nameTableByte := ppu.readRam(tileAddress)
+		ppu.planeDataBuffer.setTileId(nameTableByte)
+	case 3:
+		scrollAddress := ppu.internalAddrReg.curValue
+		attributeAddress := 0x23C0 | scrollAddress&0x0C00 | (scrollAddress>>4)&0x38 | (scrollAddress>>2)&0x7
+		attributeByte := ppu.readRam(attributeAddress)
+		if ppu.internalAddrReg.getCoarseX()%2 == 1 {
+			attributeByte >>= 2
+		}
+		if ppu.internalAddrReg.getCoarseY()%2 == 1 {
+			attributeByte >>= 2
+		}
+		attributeData := attributeByte & 0x3
+		ppu.planeDataBuffer.setAttributeData(attributeData)
+	case 5:
+		tileAddress := uint16(ppu.planeDataBuffer.taileId) + ppu.internalAddrReg.getFineY()
+		data := ppu.readRam(tileAddress)
+		ppu.planeDataBuffer.setTileDataLow(data)
+	case 7:
+		tileAddress := uint16(ppu.planeDataBuffer.taileId) + ppu.internalAddrReg.getFineY() + 8
+		data := ppu.readRam(tileAddress)
+		ppu.planeDataBuffer.setTileDataHigh(data)
 	}
 }
