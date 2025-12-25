@@ -70,7 +70,7 @@ func (ppu *Ppu) readNameTable(img *image, table int) {
 		x := startX
 		y := startY
 		for spriteByteNum := 0; spriteByteNum < 8; spriteByteNum += 1 {
-			spriteTable := ppu.controllReg.backgroundTable
+			spriteTable := ppu.controllReg.GetBackgroundTable()
 			spriteAddress := spriteTable + spiteId*0x10 + uint16(spriteByteNum)
 			plane0 := ppu.readRam(spriteAddress)
 			plane1 := ppu.readRam(spriteAddress + 8)

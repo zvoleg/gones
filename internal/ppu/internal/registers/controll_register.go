@@ -1,6 +1,6 @@
-package ppu
+package registers
 
-type controllReg struct {
+type ControllReg struct {
 	value           byte
 	baseNameTable   uint16
 	incrementer     uint16
@@ -10,7 +10,7 @@ type controllReg struct {
 	generateNmi     bool
 }
 
-func (r *controllReg) write(value byte) {
+func (r *ControllReg) Write(value byte) {
 	r.value = value
 	r.baseNameTable = r.getBaseNameTableAddress()
 	r.incrementer = r.getVramIncrement()
@@ -20,7 +20,7 @@ func (r *controllReg) write(value byte) {
 	r.generateNmi = r.generateNmiOnVb()
 }
 
-func (r *controllReg) getBaseNameTableAddress() uint16 {
+func (r *ControllReg) getBaseNameTableAddress() uint16 {
 	var address uint16
 	switch r.value & 0x3 {
 	case 0:
@@ -35,7 +35,7 @@ func (r *controllReg) getBaseNameTableAddress() uint16 {
 	return address
 }
 
-func (r *controllReg) getVramIncrement() uint16 {
+func (r *ControllReg) getVramIncrement() uint16 {
 	var increment uint16
 	switch (r.value >> 2) & 0x1 {
 	case 0:
@@ -46,7 +46,7 @@ func (r *controllReg) getVramIncrement() uint16 {
 	return increment
 }
 
-func (r *controllReg) getSpriteTableAddress() uint16 {
+func (r *ControllReg) getSpriteTableAddress() uint16 {
 	var address uint16
 	switch (r.value >> 3) & 0x1 {
 	case 0:
@@ -57,7 +57,7 @@ func (r *controllReg) getSpriteTableAddress() uint16 {
 	return address
 }
 
-func (r *controllReg) getBackgroundTableAddress() uint16 {
+func (r *ControllReg) getBackgroundTableAddress() uint16 {
 	var address uint16
 	switch (r.value >> 4) & 0x1 {
 	case 0:
@@ -68,7 +68,7 @@ func (r *controllReg) getBackgroundTableAddress() uint16 {
 	return address
 }
 
-func (r *controllReg) getSpriteSize() int {
+func (r *ControllReg) getSpriteSize() int {
 	var size int
 	switch (r.value >> 5) & 0x1 {
 	case 0:
@@ -79,6 +79,18 @@ func (r *controllReg) getSpriteSize() int {
 	return size
 }
 
-func (r *controllReg) generateNmiOnVb() bool {
+func (r *ControllReg) generateNmiOnVb() bool {
 	return (r.value & 0x80) != 0
+}
+
+func (r *ControllReg) GenerateNmi() bool {
+	return r.generateNmi
+}
+
+func (r *ControllReg) GetBackgroundTable() uint16 {
+	return r.backgroundTable
+}
+
+func (r *ControllReg) Incrementer() uint16 {
+	return r.incrementer
 }

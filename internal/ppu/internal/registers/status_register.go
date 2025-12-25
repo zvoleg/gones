@@ -1,6 +1,6 @@
-package ppu
+package registers
 
-type flag byte
+type Flag byte
 
 const (
 	O = 0x20
@@ -8,15 +8,15 @@ const (
 	V = 0x80
 )
 
-type statusReg struct {
+type StatusReg struct {
 	value byte
 }
 
-func (r *statusReg) read() byte {
+func (r *StatusReg) Read() byte {
 	return r.value
 }
 
-func (r *statusReg) setStatusFlag(f flag, set bool) {
+func (r *StatusReg) SetStatusFlag(f Flag, set bool) {
 	if set {
 		r.value |= byte(f)
 	} else {

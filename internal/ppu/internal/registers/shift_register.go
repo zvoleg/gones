@@ -1,12 +1,12 @@
-package ppu
+package registers
 
-type shiftRegiseter struct {
+type ShiftRegiseter struct {
 	valueLow  uint16
 	valueHigh uint16
 	paletteId uint32
 }
 
-func (reg *shiftRegiseter) pushData(low, high, paletteId byte) {
+func (reg *ShiftRegiseter) PushData(low, high, paletteId byte) {
 	reg.valueLow &= 0xFF00 // clear low byte before setting
 	reg.valueLow |= uint16(low)
 	reg.valueHigh &= 0xFF00
@@ -16,17 +16,17 @@ func (reg *shiftRegiseter) pushData(low, high, paletteId byte) {
 	reg.paletteId |= uint32(paletteByte)
 }
 
-func (reg *shiftRegiseter) scrollX(x int) {
+func (reg *ShiftRegiseter) ScrollX(x int) {
 	reg.valueLow <<= x
 	reg.valueHigh <<= x
 	reg.paletteId <<= x * 2
 }
 
-func (reg *shiftRegiseter) popPixel() (byte, byte) {
+func (reg *ShiftRegiseter) PopPixel() (byte, byte) {
 	lowBit := (reg.valueLow) >> 15 & 1
 	highBit := (reg.valueHigh >> 15) & 1
 	pixel := (highBit << 1) | lowBit
 	palletId := (reg.paletteId >> 30) & 0x3
-	reg.scrollX(1)
+	reg.ScrollX(1)
 	return byte(pixel), byte(palletId)
 }

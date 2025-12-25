@@ -1,22 +1,25 @@
 package ppu
 
-import "fmt"
+import (
+	"fmt"
+
+	reg "github.com/zvoleg/gones/internal/ppu/internal/registers"
+)
 
 func (ppu *Ppu) RegisterRead(regAddress uint16) byte {
 	var data byte
 	switch regAddress {
 	case 2:
-		data = ppu.statusReg.read()
-		ppu.internalAddrReg.resetLatch()
-		ppu.statusReg.setStatusFlag(V, false)
+		data = ppu.statusReg.Read()
+		ppu.internalAddrReg.ResetLatch()
+		ppu.statusReg.SetStatusFlag(reg.V, false)
 	case 7:
 		data = ppu.dataBuffer
-		ppu.dataBuffer = ppu.readRam(ppu.internalAddrReg.curValue)
-		if ppu.internalAddrReg.curValue >= 0x3F00 {
+		ppu.dataBuffer = ppu.readRam(ppu.internalAddrReg.GetAddress())
+		if ppu.internalAddrReg.GetAddress() >= 0x3F00 {
 			data = ppu.dataBuffer
 		}
-		ppu.internalAddrReg.increment(ppu.controllReg.incrementer)
-		ppu.addressRegister.increment(ppu.controllReg.incrementer)
+		ppu.internalAddrReg.Increment(ppu.controllReg.Incrementer())
 	}
 	return data
 }
@@ -24,25 +27,23 @@ func (ppu *Ppu) RegisterRead(regAddress uint16) byte {
 func (ppu *Ppu) RegisterWrite(regAddress uint16, data byte) {
 	switch regAddress {
 	case 0:
-		ppu.controllReg.write(data)
-		ppu.internalAddrReg.setNameTable(data)
+		ppu.controllReg.Write(data)
+		ppu.internalAddrReg.SetNameTable(data)
 	case 1:
-		ppu.maskReg.write(data)
+		ppu.maskReg.Write(data)
 	case 3:
-		ppu.oamAddressReg.write(data)
+		ppu.oamAddressReg.Write(data)
 	case 4:
 		// fmt.Printf("Write into SRAM, address: %04X\n", ppu.oamAddressReg.value)
-		ppu.sram[ppu.oamAddressReg.value] = data
-		ppu.oamAddressReg.increment()
+		ppu.sram[ppu.oamAddressReg.GetAddress()] = data
+		ppu.oamAddressReg.Increment()
 	case 5:
-		ppu.internalAddrReg.scrollWrite(data)
+		ppu.internalAddrReg.ScrollWrite(data)
 	case 6:
-		ppu.internalAddrReg.addressWrite(data)
-		ppu.addressRegister.write(data)
-		fmt.Printf("addr: 0x%04X | intern: 0x%04X\n", ppu.addressRegister.value, ppu.internalAddrReg.curValue)
+		ppu.internalAddrReg.AddressWrite(data)
+		fmt.Printf("intern: 0x%04X\n", ppu.internalAddrReg.GetAddress())
 	case 7:
-		ppu.writeRam(ppu.internalAddrReg.curValue, data)
-		ppu.internalAddrReg.increment(ppu.controllReg.incrementer)
-		ppu.addressRegister.increment(ppu.controllReg.incrementer)
+		ppu.writeRam(ppu.internalAddrReg.GetAddress(), data)
+		ppu.internalAddrReg.Increment(ppu.controllReg.Incrementer())
 	}
 }
