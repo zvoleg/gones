@@ -1,8 +1,6 @@
 package ppu
 
 import (
-	"fmt"
-
 	reg "github.com/zvoleg/gones/internal/ppu/internal/registers"
 )
 
@@ -39,9 +37,10 @@ func (ppu *Ppu) RegisterWrite(regAddress uint16, data byte) {
 		ppu.oamAddressReg.Increment()
 	case 5:
 		ppu.internalAddrReg.ScrollWrite(data)
+		// fmt.Printf("Scroll set intern: 0x%04X\n", ppu.internalAddrReg.GetAddress())
 	case 6:
 		ppu.internalAddrReg.AddressWrite(data)
-		fmt.Printf("intern: 0x%04X\n", ppu.internalAddrReg.GetAddress())
+		// fmt.Printf("Address set intern: 0x%04X\n", ppu.internalAddrReg.GetAddress())
 	case 7:
 		ppu.writeRam(ppu.internalAddrReg.GetAddress(), data)
 		ppu.internalAddrReg.Increment(ppu.controllReg.Incrementer())

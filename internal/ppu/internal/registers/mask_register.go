@@ -2,10 +2,24 @@ package registers
 
 type MaskReg struct {
 	value byte
+
+	backgroundEnabled bool
+	spritesEnabled    bool
 }
 
 func (r *MaskReg) Write(value byte) {
 	r.value = value
+
+	r.backgroundEnabled = r.backgroundBitEnabled()
+	r.spritesEnabled = r.spritesBitEnabled()
+}
+
+func (r *MaskReg) backgroundBitEnabled() bool {
+	return (r.value & 0x8) != 0
+}
+
+func (r *MaskReg) spritesBitEnabled() bool {
+	return (r.value & 0x10) != 0
 }
 
 func (r *MaskReg) GrayscaleDisplayEnabled() bool {
@@ -20,16 +34,8 @@ func (r *MaskReg) LeftSpritesEnabled() bool {
 	return (r.value & 0x4) != 0
 }
 
-func (r *MaskReg) BackgroundEnabled() bool {
-	return (r.value & 0x8) != 0
-}
-
-func (r *MaskReg) SpritesEnabled() bool {
-	return (r.value & 0x10) != 0
-}
-
 func (r *MaskReg) RenderingEnabled() bool {
-	return r.BackgroundEnabled() || r.SpritesEnabled()
+	return r.backgroundEnabled || r.spritesEnabled
 }
 
 // 0x20 Emphasize red (green on PAL/Dendy)

@@ -27,9 +27,7 @@ type Ppu struct {
 	paletteRam [0x0020]byte
 	sram       [0x100]byte
 
-	screen     image // screen size 256x240, 4 byte per pixel (RGBA)
-	screenPosX int
-	screenPosY int
+	screen image // screen size 256x240, 4 byte per pixel (RGBA)
 
 	planeDataBuffer planeDataBuffer
 	shiftRegiseter  reg.ShiftRegiseter
@@ -96,10 +94,10 @@ func (ppu *Ppu) InitBus(bus PpuBus) {
 }
 
 func (ppu *Ppu) Clock() {
-	if ppu.clockCounter == 0 && !ppu.evenFrame {
-		ppu.clockCounter += 1
-		return
-	}
+	// if ppu.clockCounter == 0 && !ppu.evenFrame {
+	// 	ppu.clockCounter += 1
+	// 	return
+	// }
 
 	lineNum := ppu.clockCounter / 341
 	dotNum := ppu.clockCounter % 341
@@ -107,6 +105,7 @@ func (ppu *Ppu) Clock() {
 
 	if ppu.maskReg.RenderingEnabled() {
 		if line == Visible && dotNum < 256 {
+			// fmt.Printf("Internal Address: 0x%04X\n", ppu.internalAddrReg.GetAddress())
 			colorId := ppu.readRam(0x3F00) // fetch background pixel
 			color := paletteColors[colorId]
 
@@ -119,48 +118,30 @@ func (ppu *Ppu) Clock() {
 
 			//TODO fetch sprite pixel
 
-			if ppu.screenPosX < 256 && ppu.screenPosY < 240 {
-				ppu.screen.setDot(ppu.screenPosX, ppu.screenPosY, color)
+			if dotNum < 256 && lineNum < 240 {
+				ppu.screen.setDot(dotNum, lineNum, color)
 			} else {
-				fmt.Printf("Wrong screen coordinates %d %d\n", ppu.screenPosX, ppu.screenPosY)
+				fmt.Printf("Wrong screen coordinates %d %d\n", dotNum, lineNum)
 			}
 		}
 		if (line == Visible || line == PreRender) && (dotNum < 256 || (dotNum >= 321 && dotNum < 338)) {
 			ppu.updatePlaneDataBuffer(dotNum)
-			if dotNum%8 == 0 {
-				dataLow := ppu.planeDataBuffer.tileDataLow
-				dataHigh := ppu.planeDataBuffer.tileDataHigh
-				paletteId := ppu.planeDataBuffer.attributeData
-				ppu.shiftRegiseter.PushData(dataLow, dataHigh, paletteId)
-			}
 		}
 
-		if line == Visible && dotNum < 256 {
-			ppu.internalAddrReg.IncrementCoarseX()
-			ppu.screenPosX += 1
-		}
-		if line == Visible && dotNum == 256 {
+		if dotNum == 256 {
 			ppu.internalAddrReg.IncrementY()
-			ppu.screenPosY += 1
-			ppu.screenPosX = 0
 		}
 		if dotNum == 257 { // copy horizontal position from tmp register
 			ppu.internalAddrReg.CopyHorizontalPosition()
 		}
-		if line == PreRender && (dotNum >= 280 && dotNum < 304) { // copy vertical position from tmp register
+		if line == PreRender && (dotNum >= 280 && dotNum < 305) { // copy vertical position from tmp register
 			ppu.internalAddrReg.CopyVerticalPosition()
 		}
 	} else {
 		colorId := rand.Intn(len(paletteColors))
 		color := paletteColors[colorId]
-		ppu.screen.setDot(ppu.screenPosX, ppu.screenPosY, color)
-		ppu.screenPosX += 1
-		if ppu.screenPosX == 256 {
-			ppu.screenPosY += 1
-			ppu.screenPosX = 0
-		}
-		if ppu.screenPosY == 240 {
-			ppu.screenPosY = 0
+		if dotNum < 256 && lineNum < 240 {
+			ppu.screen.setDot(dotNum, lineNum, color)
 		}
 	}
 
@@ -177,8 +158,6 @@ func (ppu *Ppu) Clock() {
 		ppu.statusReg.SetStatusFlag(reg.V, false)
 		ppu.statusReg.SetStatusFlag(reg.S, false)
 		ppu.statusReg.SetStatusFlag(reg.O, false)
-		ppu.screenPosX = 0
-		ppu.screenPosY = 0
 	}
 	if ppu.clockCounter > 89342 {
 		ppu.clockCounter = 0
@@ -240,7 +219,7 @@ func (ppu *Ppu) readRam(address uint16) byte {
 		}
 		data = ppu.paletteRam[address]
 	default:
-		fmt.Printf("Wrong address for writing into vram: 0x%04X\n", address)
+		fmt.Printf("Wrong address for reading into vram: 0x%04X\n", address)
 	}
 	return data
 }
@@ -286,10 +265,16 @@ func (ppu *Ppu) writeRam(address uint16, data byte) {
 
 func (ppu *Ppu) updatePlaneDataBuffer(dotNum int) {
 	switch dotNum % 8 {
+	case 0:
+		dataLow := ppu.planeDataBuffer.tileDataLow
+		dataHigh := ppu.planeDataBuffer.tileDataHigh
+		paletteId := ppu.planeDataBuffer.attributeData
+		ppu.shiftRegiseter.PushData(dataLow, dataHigh, paletteId)
+		ppu.internalAddrReg.IncrementCoarseX()
 	case 1:
 		tileAddress := 0x2000 | ppu.internalAddrReg.GetAddress()&0x0FFF
-		nameTableByte := ppu.readRam(tileAddress)
-		ppu.planeDataBuffer.setTileId(nameTableByte)
+		tileId := ppu.readRam(tileAddress)
+		ppu.planeDataBuffer.setTileId(tileId)
 	case 3:
 		scrollAddress := ppu.internalAddrReg.GetAddress()
 		attributeAddress := 0x23C0 | scrollAddress&0x0C00 | (scrollAddress>>4)&0x38 | (scrollAddress>>2)&0x7
@@ -303,11 +288,13 @@ func (ppu *Ppu) updatePlaneDataBuffer(dotNum int) {
 		attributeData := attributeByte & 0x3
 		ppu.planeDataBuffer.setAttributeData(attributeData)
 	case 5:
-		tileAddress := uint16(ppu.planeDataBuffer.taileId) + ppu.internalAddrReg.GetFineY()
+		backgroundTable := ppu.controllReg.GetBackgroundTable()
+		tileAddress := backgroundTable + uint16(ppu.planeDataBuffer.taileId) + ppu.internalAddrReg.GetFineY()
 		data := ppu.readRam(tileAddress)
 		ppu.planeDataBuffer.setTileDataLow(data)
 	case 7:
-		tileAddress := uint16(ppu.planeDataBuffer.taileId) + ppu.internalAddrReg.GetFineY() + 8
+		backgroundTable := ppu.controllReg.GetBackgroundTable()
+		tileAddress := backgroundTable + uint16(ppu.planeDataBuffer.taileId) + ppu.internalAddrReg.GetFineY() + 8
 		data := ppu.readRam(tileAddress)
 		ppu.planeDataBuffer.setTileDataHigh(data)
 	}
