@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/zvoleg/gones/internal/controller"
@@ -11,7 +13,13 @@ import (
 )
 
 func main() {
-	device := device.NewDevice("./smb.nes")
+	args := os.Args
+	if len(args) < 2 {
+		fmt.Println("program doesnt select")
+	}
+	programm := args[1]
+
+	device := device.NewDevice(programm)
 	wg := sync.WaitGroup{}
 
 	wg.Add(1)
