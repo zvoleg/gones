@@ -105,7 +105,7 @@ func (ppu *Ppu) Clock() {
 
 	if ppu.maskReg.RenderingEnabled() {
 		if line == Visible && dotNum < 256 {
-			// fmt.Printf("Internal Address: 0x%04X\n", ppu.internalAddrReg.GetAddress())
+			// fmt.Printf("Dot: %d\tLine: %d\tInternal Address: 0x%04X\n", dotNum, lineNum, ppu.internalAddrReg.GetAddress())
 			colorId := ppu.readRam(0x3F00) // fetch background pixel
 			color := paletteColors[colorId]
 
@@ -187,6 +187,7 @@ func getLineType(lineNum int) lineType {
 
 func (ppu *Ppu) readRam(address uint16) byte {
 	var data byte
+	address &= 0x3FFF
 	switch true {
 	case address <= 0x1FFF:
 		data = ppu.bus.PpuRead(address)
@@ -226,6 +227,7 @@ func (ppu *Ppu) readRam(address uint16) byte {
 
 func (ppu *Ppu) writeRam(address uint16, data byte) {
 	// fmt.Printf("Write into VRAM, address: %04X\n", address)
+	address &= 0x3FFF
 	switch true {
 	case address <= 0x1FFF:
 		ppu.bus.PpuWrite(address, data)
@@ -273,6 +275,7 @@ func (ppu *Ppu) updatePlaneDataBuffer(dotNum int) {
 		ppu.internalAddrReg.IncrementCoarseX()
 	case 1:
 		tileAddress := 0x2000 | ppu.internalAddrReg.GetAddress()&0x0FFF
+		// fmt.Printf("tile address: %04X\n", tileAddress)
 		tileId := ppu.readRam(tileAddress)
 		ppu.planeDataBuffer.setTileId(tileId)
 	case 3:
@@ -289,12 +292,12 @@ func (ppu *Ppu) updatePlaneDataBuffer(dotNum int) {
 		ppu.planeDataBuffer.setAttributeData(attributeData)
 	case 5:
 		backgroundTable := ppu.controllReg.GetBackgroundTable()
-		tileAddress := backgroundTable + uint16(ppu.planeDataBuffer.taileId) + ppu.internalAddrReg.GetFineY()
+		tileAddress := backgroundTable + uint16(ppu.planeDataBuffer.taileId)*16 + ppu.internalAddrReg.GetFineY()
 		data := ppu.readRam(tileAddress)
 		ppu.planeDataBuffer.setTileDataLow(data)
 	case 7:
 		backgroundTable := ppu.controllReg.GetBackgroundTable()
-		tileAddress := backgroundTable + uint16(ppu.planeDataBuffer.taileId) + ppu.internalAddrReg.GetFineY() + 8
+		tileAddress := backgroundTable + uint16(ppu.planeDataBuffer.taileId)*16 + ppu.internalAddrReg.GetFineY() + 8
 		data := ppu.readRam(tileAddress)
 		ppu.planeDataBuffer.setTileDataHigh(data)
 	}

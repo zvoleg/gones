@@ -12,7 +12,7 @@ func (reg *InternalAddrReg) GetAddress() uint16 {
 }
 
 func (reg *InternalAddrReg) GetFineY() uint16 {
-	return reg.curValue >> 12
+	return (reg.curValue >> 12) & 0x7
 }
 
 func (reg *InternalAddrReg) GetCoarseX() uint16 {
@@ -47,7 +47,7 @@ func (reg *InternalAddrReg) IncrementY() {
 		default:
 			coarseY += 1
 		}
-		reg.curValue &= ^uint16(0x03E00)
+		reg.curValue &= ^uint16(0x03E0)
 		reg.curValue |= coarseY << 5
 	}
 }
