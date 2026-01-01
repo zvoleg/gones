@@ -112,7 +112,7 @@ func (ppu *Ppu) Clock() {
 			//TODO fetch plane pixel
 			pixel, palettId := ppu.shiftRegiseter.PopPixel()
 			if pixel != 0 {
-				colorId := ppu.readRam(uint16(0x3F00) + uint16(palettId+pixel))
+				colorId := ppu.readRam(uint16(0x3F00) + uint16(palettId*4+pixel))
 				color = paletteColors[colorId]
 			}
 
@@ -284,13 +284,13 @@ func (ppu *Ppu) updatePlaneDataBuffer(dotNum int) {
 		coarseX := ppu.internalAddrReg.GetCoarseX()
 		attributeAddress := 0x23C0 | scrollAddress&0x0C00 | (coarseY>>2)<<3 | (coarseX >> 2)
 		attributeByte := ppu.readRam(attributeAddress)
-		if ppu.internalAddrReg.GetCoarseX()%2 == 1 {
+		if coarseX&0x02 == 0x02 {
 			attributeByte >>= 2
 		}
-		if ppu.internalAddrReg.GetCoarseY()%2 == 1 {
-			attributeByte >>= 2
+		if coarseY&0x02 == 0x02 {
+			attributeByte >>= 4
 		}
-		attributeData := attributeByte & 0x3
+		attributeData := attributeByte & 0x03
 		ppu.planeDataBuffer.setAttributeData(attributeData)
 	case 5:
 		backgroundTable := ppu.controllReg.GetBackgroundTable()

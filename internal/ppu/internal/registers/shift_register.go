@@ -12,8 +12,9 @@ func (reg *ShiftRegiseter) PushData(low, high, paletteId byte, fineX uint16) {
 	reg.valueHigh &= 0xFF00 << fineX
 	reg.valueHigh |= uint16(high) << fineX
 
-	paletteByte := paletteId<<6 | paletteId<<4 | paletteId<<2 | paletteId
-	reg.paletteId |= uint32(paletteByte)
+	paletteBits := uint32(paletteId)
+	paletteWord := (paletteBits<<14 | paletteBits<<12 | paletteBits<<10 | paletteBits<<8 | paletteBits<<6 | paletteBits<<4 | paletteBits<<2 | paletteBits) << (fineX * 2)
+	reg.paletteId |= uint32(paletteWord)
 }
 
 func (reg *ShiftRegiseter) ScrollX(x int) {
