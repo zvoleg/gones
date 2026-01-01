@@ -6,11 +6,11 @@ type ShiftRegiseter struct {
 	paletteId uint32
 }
 
-func (reg *ShiftRegiseter) PushData(low, high, paletteId byte) {
-	reg.valueLow &= 0xFF00 // clear low byte before setting
-	reg.valueLow |= uint16(low)
-	reg.valueHigh &= 0xFF00
-	reg.valueHigh |= uint16(high)
+func (reg *ShiftRegiseter) PushData(low, high, paletteId byte, fineX uint16) {
+	reg.valueLow &= 0xFF00 << fineX // clear low byte before setting
+	reg.valueLow |= uint16(low) << fineX
+	reg.valueHigh &= 0xFF00 << fineX
+	reg.valueHigh |= uint16(high) << fineX
 
 	paletteByte := paletteId<<6 | paletteId<<4 | paletteId<<2 | paletteId
 	reg.paletteId |= uint32(paletteByte)
@@ -27,6 +27,5 @@ func (reg *ShiftRegiseter) PopPixel() (byte, byte) {
 	highBit := (reg.valueHigh >> 15) & 1
 	pixel := (highBit << 1) | lowBit
 	palletId := (reg.paletteId >> 30) & 0x3
-	reg.ScrollX(1)
 	return byte(pixel), byte(palletId)
 }
