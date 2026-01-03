@@ -11,7 +11,7 @@ import (
 type Device struct {
 	cpu    *cpu6502.Cpu6502
 	ppu    *ppu.Ppu
-	joypad controller.Joypad
+	joypad *controller.Joypad
 
 	dmaClcokWaiter bool
 	clockCounter   uint64
@@ -27,7 +27,7 @@ func NewDevice(programPath string) Device {
 	return Device{
 		cpu:    &cpu,
 		ppu:    &ppuEmu,
-		joypad: joypad,
+		joypad: &joypad,
 
 		dmaClcokWaiter: true,
 		clockCounter:   0,
@@ -54,7 +54,7 @@ func (d *Device) GetImageProducer() ppu.ImageProducer {
 }
 
 func (d *Device) GetJoypadConnector() controller.Connector {
-	return &d.joypad
+	return d.joypad
 }
 
 func (d *Device) dmaClock() {

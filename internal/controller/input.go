@@ -41,6 +41,7 @@ func (j *Joypad) SendByte(data byte) {
 	}
 	_, err := j.ws.Write([]byte{data})
 	if err != nil {
+		fmt.Println(err)
 		fmt.Println("InputInterface: Can't write message to client")
 		j.ws.Close()
 		j.closed = true
@@ -56,7 +57,6 @@ func (j *Joypad) SendByte(data byte) {
 	}
 	if len(buffer) != 0 {
 		j.register = buffer[0]
-		fmt.Printf("joypad register: %04X\n", j.register)
 	}
 }
 

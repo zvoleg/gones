@@ -38,19 +38,20 @@ func main() {
 	go func() {
 		defer wg.Done()
 
-		http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "web/index.html")
-		})
-		http.ListenAndServe(":8081", nil)
+		server := controller.NewControllerServer(device.GetJoypadConnector())
+		http.Handle("/input", websocket.Handler(server.Handler))
+		http.ListenAndServe(":3001", nil)
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 
-		server := controller.NewControllerServer(device.GetJoypadConnector())
-		http.Handle("/input", websocket.Handler(server.Handler))
+		http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "web/index.html")
+		})
+		http.ListenAndServe(":8081", nil)
 	}()
 
 	wg.Add(1)
