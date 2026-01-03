@@ -12,8 +12,18 @@ func (reg *ShiftRegiseter) PushData(low, high, paletteId byte, fineX uint16) {
 	reg.valueHigh &= 0xFF00 << fineX
 	reg.valueHigh |= uint16(high) << fineX
 
-	paletteBits := uint32(paletteId)
-	paletteWord := (paletteBits<<14 | paletteBits<<12 | paletteBits<<10 | paletteBits<<8 | paletteBits<<6 | paletteBits<<4 | paletteBits<<2 | paletteBits) << (fineX * 2)
+	var paletteWord uint32
+	switch paletteId {
+	case 0b00:
+		paletteWord = 0x0000
+	case 0b01:
+		paletteWord = 0x5555 // 0b01010101....
+	case 0b10:
+		paletteWord = 0xAAAA // 0b10101010....
+	case 0b11:
+		paletteWord = 0xFFFF // 0b11111111....
+	}
+	paletteWord <<= fineX * 2
 	reg.paletteId |= uint32(paletteWord)
 }
 
