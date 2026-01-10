@@ -1,11 +1,11 @@
 package registers
 
 const (
-	coarseXmask    uint16 = 0x001F
-	coarseYmask    uint16 = 0x03E0
-	fineYmask      uint16 = 0x7000
-	horizontalMask uint16 = 0x041F
-	verticalMask   uint16 = 0x7BE0
+	maskCoarseX    uint16 = 0x001F
+	maskCoarseY    uint16 = 0x03E0
+	maskFineY      uint16 = 0x7000
+	maskHorizontal uint16 = 0x041F
+	maskVertical   uint16 = 0x7BE0
 )
 
 type InternalAddrReg struct {
@@ -36,8 +36,8 @@ func (reg *InternalAddrReg) GetCoarseY() uint16 {
 }
 
 func (reg *InternalAddrReg) IncrementCoarseX() {
-	if reg.curValue&coarseXmask == 31 {
-		reg.curValue &= ^coarseXmask
+	if reg.curValue&maskCoarseX == 31 {
+		reg.curValue &= ^maskCoarseX
 		reg.curValue ^= 0x0400
 	} else {
 		reg.curValue += 1
@@ -45,11 +45,11 @@ func (reg *InternalAddrReg) IncrementCoarseX() {
 }
 
 func (reg *InternalAddrReg) IncrementY() {
-	if reg.curValue&fineYmask != fineYmask {
+	if reg.curValue&maskFineY != maskFineY {
 		reg.curValue += 0x1000 // increment fine Y
 	} else {
-		reg.curValue &= ^fineYmask // clear fine Y
-		coarseY := (reg.curValue & coarseYmask) >> 5
+		reg.curValue &= ^maskFineY // clear fine Y
+		coarseY := (reg.curValue & maskCoarseY) >> 5
 		switch coarseY {
 		case 29:
 			coarseY = 0
@@ -59,19 +59,19 @@ func (reg *InternalAddrReg) IncrementY() {
 		default:
 			coarseY += 1
 		}
-		reg.curValue &= ^coarseYmask
+		reg.curValue &= ^maskCoarseY
 		reg.curValue |= coarseY << 5
 	}
 }
 
 func (reg *InternalAddrReg) CopyHorizontalPosition() {
-	reg.curValue &= ^horizontalMask // clear bits
-	reg.curValue |= reg.tmpValue & horizontalMask
+	reg.curValue &= ^maskHorizontal // clear bits
+	reg.curValue |= reg.tmpValue & maskHorizontal
 }
 
 func (reg *InternalAddrReg) CopyVerticalPosition() {
-	reg.curValue &= ^verticalMask
-	reg.curValue |= reg.tmpValue & verticalMask
+	reg.curValue &= ^maskVertical
+	reg.curValue |= reg.tmpValue & maskVertical
 }
 
 func (reg *InternalAddrReg) SetNameTable(data byte) {
@@ -86,15 +86,15 @@ func (reg *InternalAddrReg) ResetLatch() {
 func (reg *InternalAddrReg) ScrollWrite(dataByte byte) {
 	data := uint16(dataByte)
 	if reg.latch {
-		reg.tmpValue &= ^fineYmask // clear bits before set
+		reg.tmpValue &= ^maskFineY // clear bits before set
 		fineY := data & 0x07
 		reg.tmpValue |= fineY << 12
-		reg.tmpValue &= ^coarseYmask // clear bits before set
+		reg.tmpValue &= ^maskCoarseY // clear bits before set
 		coarseY := data >> 3
 		reg.tmpValue |= coarseY << 5
 	} else {
 		reg.fineX = data & 0x07
-		reg.tmpValue &= ^coarseXmask // clear bits before set
+		reg.tmpValue &= ^maskCoarseX // clear bits before set
 		coarseX := data >> 3
 		reg.tmpValue |= coarseX
 	}
@@ -108,7 +108,7 @@ func (reg *InternalAddrReg) AddressWrite(dataByte byte) {
 		reg.tmpValue |= data
 		reg.UpdateCurValue()
 	} else {
-		reg.tmpValue &= uint16(0x00FF) // clear bits before set
+		reg.tmpValue &= uint16(0x80FF) // clear bits before set
 		reg.tmpValue |= (data & 0x3F) << 8
 	}
 	reg.swapLatch()
