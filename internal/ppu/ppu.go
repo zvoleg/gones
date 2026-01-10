@@ -124,10 +124,10 @@ func (ppu *Ppu) Clock() {
 
 			ppu.screen.setDot(dotNum, lineNum, color)
 		}
-		if dotNum == 256 {
+		if (line == Visible || line == PreRender) && dotNum == 256 {
 			ppu.internalAddrReg.IncrementY()
 		}
-		if dotNum == 257 { // copy horizontal position from tmp register
+		if (line == Visible || line == PreRender) && dotNum == 257 { // copy horizontal position from tmp register
 			ppu.internalAddrReg.CopyHorizontalPosition()
 		}
 		if line == PreRender && (dotNum >= 280 && dotNum < 305) { // copy vertical position from tmp register
