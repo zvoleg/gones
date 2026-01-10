@@ -104,12 +104,16 @@ func (ppu *Ppu) Clock() {
 	line := getLineType(lineNum)
 
 	if ppu.maskReg.RenderingEnabled() {
+		if (line == Visible || line == PreRender) && ((dotNum > 0 && dotNum < 256) || (dotNum >= 321 && dotNum < 337)) {
+			ppu.shiftRegiseter.ScrollX(1)
+			ppu.updatePlaneDataBuffer(dotNum)
+		}
 		if line == Visible && dotNum < 256 {
 			// fmt.Printf("Dot: %d\tLine: %d\tInternal Address: 0x%04X\n", dotNum, lineNum, ppu.internalAddrReg.GetAddress())
 			colorId := ppu.readRam(0x3F00) // fetch background pixel
 			color := paletteColors[colorId]
 
-			//TODO fetch plane pixel
+			// fetch plane pixel
 			pixel, palettId := ppu.shiftRegiseter.PopPixel()
 			if pixel != 0 {
 				colorId := ppu.readRam(uint16(0x3F00) + uint16(palettId*4+pixel))
@@ -118,21 +122,13 @@ func (ppu *Ppu) Clock() {
 
 			//TODO fetch sprite pixel
 
-			if dotNum < 256 && lineNum < 240 {
-				ppu.screen.setDot(dotNum, lineNum, color)
-			} else {
-				fmt.Printf("Wrong screen coordinates %d %d\n", dotNum, lineNum)
-			}
+			ppu.screen.setDot(dotNum, lineNum, color)
 		}
 		if dotNum == 256 {
 			ppu.internalAddrReg.IncrementY()
 		}
 		if dotNum == 257 { // copy horizontal position from tmp register
 			ppu.internalAddrReg.CopyHorizontalPosition()
-		}
-		if (line == Visible || line == PreRender) && ((dotNum > 0 && dotNum < 256) || (dotNum >= 321 && dotNum < 337)) {
-			ppu.shiftRegiseter.ScrollX(1)
-			ppu.updatePlaneDataBuffer(dotNum)
 		}
 		if line == PreRender && (dotNum >= 280 && dotNum < 305) { // copy vertical position from tmp register
 			ppu.internalAddrReg.CopyVerticalPosition()

@@ -10,7 +10,7 @@ func add(a, b byte) (res byte, carry bool, overflow bool) {
 
 	res = byte(sum)
 	carry = sum&0x100 != 0
-	overflow = (a&0x80 == b&0x80) && res&0x80 != a&0x80
+	overflow = (a&0x80 == b&0x80) && (res&0x80 != a&0x80)
 	return res, carry, overflow
 }
 

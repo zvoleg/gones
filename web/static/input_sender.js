@@ -15,7 +15,6 @@ var value = 0
 
 controllerSocket.onmessage = (event) => {
     data = new Uint8ClampedArray(event.data)
-    console.log(data)
     if ((data[0] & 0x01) == 0x01) {
         value = 0
         var buffer = new ArrayBuffer(1);
@@ -61,7 +60,6 @@ controllerSocket.onmessage = (event) => {
             value |= mask;
         }
     });
-    console.log(value);
     var buffer = new ArrayBuffer(1);
     var view = new Int8Array(buffer);
     view[0] = value;

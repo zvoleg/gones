@@ -38,7 +38,7 @@ func (reg *InternalAddrReg) GetCoarseY() uint16 {
 func (reg *InternalAddrReg) IncrementCoarseX() {
 	if reg.curValue&coarseXmask == 31 {
 		reg.curValue &= ^coarseXmask
-		reg.switchBit(0x0400)
+		reg.curValue ^= 0x0400
 	} else {
 		reg.curValue += 1
 	}
@@ -53,7 +53,7 @@ func (reg *InternalAddrReg) IncrementY() {
 		switch coarseY {
 		case 29:
 			coarseY = 0
-			reg.switchBit(0x0800)
+			reg.curValue ^= 0x0800
 		case 31:
 			coarseY = 0
 		default:
@@ -125,13 +125,4 @@ func (reg *InternalAddrReg) Increment(incrementer uint16) {
 
 func (reg *InternalAddrReg) swapLatch() {
 	reg.latch = !reg.latch
-}
-
-func (reg *InternalAddrReg) switchBit(bit uint16) {
-	selectedBit := reg.curValue&bit != 0
-	if selectedBit {
-		reg.curValue &= ^uint16(bit) // clear bit
-	} else {
-		reg.curValue |= uint16(bit) // set bit
-	}
 }
