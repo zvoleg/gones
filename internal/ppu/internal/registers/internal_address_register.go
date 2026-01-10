@@ -75,7 +75,8 @@ func (reg *InternalAddrReg) CopyVerticalPosition() {
 }
 
 func (reg *InternalAddrReg) SetNameTable(data byte) {
-	reg.tmpValue |= uint16((data & 0x3)) << 10
+	reg.tmpValue &= ^(uint16(0x3) << 10)
+	reg.tmpValue |= uint16(data&0x3) << 10
 }
 
 func (reg *InternalAddrReg) ResetLatch() {
@@ -91,25 +92,23 @@ func (reg *InternalAddrReg) ScrollWrite(dataByte byte) {
 		reg.tmpValue &= ^coarseYmask // clear bits before set
 		coarseY := data >> 3
 		reg.tmpValue |= coarseY << 5
-		reg.swapLatch()
 	} else {
 		reg.fineX = data & 0x07
 		reg.tmpValue &= ^coarseXmask // clear bits before set
 		coarseX := data >> 3
 		reg.tmpValue |= coarseX
-		reg.swapLatch()
 	}
+	reg.swapLatch()
 }
 
 func (reg *InternalAddrReg) AddressWrite(dataByte byte) {
 	data := uint16(dataByte)
 	if reg.latch {
-		reg.tmpValue &= ^uint16(0xFF) // clear bits before set
+		reg.tmpValue &= uint16(0xFF00) // clear bits before set
 		reg.tmpValue |= data
 		reg.UpdateCurValue()
 	} else {
-		reg.tmpValue &= ^uint16(0x4000) // clear 14th bit
-		reg.tmpValue &= ^uint16(0x3F00) // clear bits before set
+		reg.tmpValue &= uint16(0x00FF) // clear bits before set
 		reg.tmpValue |= (data & 0x3F) << 8
 	}
 	reg.swapLatch()
