@@ -1,7 +1,7 @@
 package registers
 
 type OamAddressReg struct {
-	value uint16
+	value byte
 }
 
 func (r *OamAddressReg) Reset() {
@@ -9,13 +9,13 @@ func (r *OamAddressReg) Reset() {
 }
 
 func (r *OamAddressReg) Write(value byte) {
-	r.value = uint16(value) << 8
+	r.value = value
 }
 
 func (r *OamAddressReg) Increment() {
 	r.value += 1
 }
 
-func (r *OamAddressReg) GetAddress() uint16 {
+func (r *OamAddressReg) GetAddress() byte {
 	return r.value
 }

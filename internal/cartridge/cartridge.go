@@ -1,6 +1,7 @@
 package cartridge
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/zvoleg/gones/internal/ppu"
@@ -52,6 +53,8 @@ func getMapper(header header, nesFile []byte) mapper {
 	case 000:
 		map000 := newMap000(header)
 		mapp = &map000
+	default:
+		panic(fmt.Sprintf("Undefined mapper %03d", header.mapperNum))
 	}
 	return mapp
 }

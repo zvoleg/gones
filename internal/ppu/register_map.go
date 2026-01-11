@@ -11,6 +11,9 @@ func (ppu *Ppu) RegisterRead(regAddress uint16) byte {
 		data = ppu.statusReg.Read()
 		ppu.internalAddrReg.ResetLatch()
 		ppu.statusReg.SetStatusFlag(reg.V, false)
+	case 4:
+		address := ppu.oamAddressReg.GetAddress()
+		data = ppu.readSram(address)
 	case 7:
 		data = ppu.dataBuffer
 		ppu.dataBuffer = ppu.readRam(ppu.internalAddrReg.GetAddress())
@@ -33,7 +36,8 @@ func (ppu *Ppu) RegisterWrite(regAddress uint16, data byte) {
 		ppu.oamAddressReg.Write(data)
 	case 4:
 		// fmt.Printf("Write into SRAM, address: %04X\n", ppu.oamAddressReg.value)
-		ppu.sram[ppu.oamAddressReg.GetAddress()] = data
+		address := ppu.oamAddressReg.GetAddress()
+		ppu.writeSram(data, address)
 		ppu.oamAddressReg.Increment()
 	case 5:
 		ppu.internalAddrReg.ScrollWrite(data)

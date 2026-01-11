@@ -3,6 +3,7 @@ package ppu
 import (
 	"fmt"
 	"math/rand"
+	"unsafe"
 
 	reg "github.com/zvoleg/gones/internal/ppu/internal/registers"
 )
@@ -25,7 +26,7 @@ type PpuBus interface {
 type Ppu struct {
 	nameTable  [0x0800]byte
 	paletteRam [0x0020]byte
-	sram       [0x100]byte
+	sram       [0x40]ObjectAttributeEntity // sprites memory
 
 	screen image // screen size 256x240, 4 byte per pixel (RGBA)
 
@@ -36,7 +37,6 @@ type Ppu struct {
 	maskReg         *reg.MaskReg
 	statusReg       *reg.StatusReg
 	oamAddressReg   *reg.OamAddressReg
-	oamDataReg      *reg.OamDataReg
 	internalAddrReg *reg.InternalAddrReg
 
 	dataBuffer byte
@@ -44,6 +44,7 @@ type Ppu struct {
 	bus PpuBus
 
 	dmaEnabled     bool
+	dmaSrcPage     uint16
 	dmaByte        byte
 	dmaClockWaiter bool
 
@@ -58,7 +59,6 @@ func NewPpu() Ppu {
 	maskReg := reg.MaskReg{}
 	statusReg := reg.StatusReg{}
 	oamAddressReg := reg.OamAddressReg{}
-	oamDataReg := reg.OamDataReg{}
 	internalAddrReg := reg.InternalAddrReg{}
 
 	return Ppu{
@@ -68,7 +68,6 @@ func NewPpu() Ppu {
 		maskReg:         &maskReg,
 		statusReg:       &statusReg,
 		oamAddressReg:   &oamAddressReg,
-		oamDataReg:      &oamDataReg,
 		internalAddrReg: &internalAddrReg,
 		bus:             nil,
 
@@ -259,6 +258,20 @@ func (ppu *Ppu) writeRam(address uint16, data byte) {
 	default:
 		fmt.Printf("Wrong address for writing into vram: 0x%04X\n", address)
 	}
+}
+
+func (ppu *Ppu) writeSram(data byte, address byte) {
+	ptr := unsafe.Pointer(&ppu.sram[0])
+	offset := unsafe.Pointer(uintptr(ptr) + uintptr(address))
+	bytePtr := (*byte)(offset)
+	*bytePtr = data
+}
+
+func (ppu *Ppu) readSram(address byte) byte {
+	ptr := unsafe.Pointer(&ppu.sram[0])
+	offset := unsafe.Pointer(uintptr(ptr) + uintptr(address))
+	bytePtr := (*byte)(offset)
+	return *bytePtr
 }
 
 func (ppu *Ppu) updatePlaneDataBuffer(dotNum int) {
