@@ -26,7 +26,12 @@ type PpuBus interface {
 type Ppu struct {
 	nameTable  [0x0800]byte
 	paletteRam [0x0020]byte
-	sram       [0x40]ObjectAttributeEntity // sprites memory
+
+	oam                [0x40]ObjectAttributeEntity // sprites memory
+	nextLineOam        [0x08]ObjectAttributeEntity
+	curentLineOam      [0x08]ObjectAttributeEntity
+	oamCounter         int
+	nextLineOamCounter int
 
 	screen image // screen size 256x240, 4 byte per pixel (RGBA)
 
@@ -103,34 +108,15 @@ func (ppu *Ppu) Clock() {
 	line := getLineType(lineNum)
 
 	if ppu.maskReg.RenderingEnabled() {
-		if (line == Visible || line == PreRender) && ((dotNum > 0 && dotNum < 256) || (dotNum >= 321 && dotNum < 337)) {
-			ppu.shiftRegiseter.ScrollX(1)
-			ppu.updatePlaneDataBuffer(dotNum)
-		}
-		if line == Visible && dotNum < 256 {
-			// fmt.Printf("Dot: %d\tLine: %d\tInternal Address: 0x%04X\n", dotNum, lineNum, ppu.internalAddrReg.GetAddress())
-			colorId := ppu.readRam(0x3F00) // fetch background pixel
-			color := paletteColors[colorId]
-
-			// fetch plane pixel
-			pixel, palettId := ppu.shiftRegiseter.PopPixel()
-			if pixel != 0 {
-				colorId := ppu.readRam(uint16(0x3F00) + uint16(palettId*4+pixel))
-				color = paletteColors[colorId]
-			}
-
-			//TODO fetch sprite pixel
-
-			ppu.screen.setDot(dotNum, lineNum, color)
-		}
-		if (line == Visible || line == PreRender) && dotNum == 256 {
-			ppu.internalAddrReg.IncrementY()
-		}
-		if (line == Visible || line == PreRender) && dotNum == 257 { // copy horizontal position from tmp register
-			ppu.internalAddrReg.CopyHorizontalPosition()
+		if line == Visible || line == PreRender {
+			ppu.backgroundPlaneProcess(dotNum, lineNum)
 		}
 		if line == PreRender && (dotNum >= 280 && dotNum < 305) { // copy vertical position from tmp register
 			ppu.internalAddrReg.CopyVerticalPosition()
+		}
+		if line == Visible && dotNum < 256 {
+			ppu.spriteEvaluations(dotNum, lineNum)
+			ppu.rendering(dotNum, lineNum)
 		}
 	} else {
 		colorId := rand.Intn(len(paletteColors))
@@ -261,14 +247,14 @@ func (ppu *Ppu) writeRam(address uint16, data byte) {
 }
 
 func (ppu *Ppu) writeSram(data byte, address byte) {
-	ptr := unsafe.Pointer(&ppu.sram[0])
+	ptr := unsafe.Pointer(&ppu.oam[0])
 	offset := unsafe.Pointer(uintptr(ptr) + uintptr(address))
 	bytePtr := (*byte)(offset)
 	*bytePtr = data
 }
 
 func (ppu *Ppu) readSram(address byte) byte {
-	ptr := unsafe.Pointer(&ppu.sram[0])
+	ptr := unsafe.Pointer(&ppu.oam[0])
 	offset := unsafe.Pointer(uintptr(ptr) + uintptr(address))
 	bytePtr := (*byte)(offset)
 	return *bytePtr
@@ -312,4 +298,60 @@ func (ppu *Ppu) updatePlaneDataBuffer(dotNum int) {
 		data := ppu.readRam(tileAddress)
 		ppu.planeDataBuffer.setTileDataHigh(data)
 	}
+}
+
+func (ppu *Ppu) backgroundPlaneProcess(dotNum, lineNum int) {
+	if (dotNum > 0 && dotNum < 256) || (dotNum >= 321 && dotNum < 337) {
+		ppu.shiftRegiseter.ScrollX(1)
+		ppu.updatePlaneDataBuffer(dotNum)
+	}
+	if dotNum == 256 {
+		ppu.internalAddrReg.IncrementY()
+	}
+	if dotNum == 257 { // copy horizontal position from tmp register
+		ppu.internalAddrReg.CopyHorizontalPosition()
+	}
+}
+
+func (ppu *Ppu) spriteEvaluations(dotNum, lineNum int) {
+	if dotNum < 65 {
+		if dotNum%2 == 0 {
+			ptr := unsafe.Pointer(&ppu.nextLineOam[0])
+			offset := unsafe.Pointer(uintptr(ptr) + uintptr(dotNum/2))
+			bytePtr := (*byte)(offset)
+			*bytePtr = 0xFF
+		}
+		if dotNum >= 65 && dotNum < 265 && ppu.oamCounter < 64 && ppu.nextLineOamCounter < 8 {
+			candidate := ppu.oam[ppu.oamCounter]
+			ppu.oamCounter += 1
+			yOffset := lineNum - int(candidate.yCoordinate)
+			if yOffset >= 0 && yOffset < int(ppu.controllReg.SpriteSize()) {
+				ppu.nextLineOam[ppu.nextLineOamCounter] = candidate
+				ppu.nextLineOamCounter += 1
+			}
+			if ppu.nextLineOamCounter == 8 {
+				ppu.statusReg.SetStatusFlag(reg.O, true)
+			}
+		}
+		if dotNum == 265 {
+			ppu.curentLineOam, ppu.nextLineOam = ppu.nextLineOam, ppu.curentLineOam
+		}
+	}
+}
+
+func (ppu *Ppu) rendering(dotNum, lineNum int) {
+	// fmt.Printf("Dot: %d\tLine: %d\tInternal Address: 0x%04X\n", dotNum, lineNum, ppu.internalAddrReg.GetAddress())
+	colorId := ppu.readRam(0x3F00) // fetch background pixel
+	color := paletteColors[colorId]
+
+	// fetch plane pixel
+	pixel, palettId := ppu.shiftRegiseter.PopPixel()
+	if pixel != 0 {
+		colorId := ppu.readRam(uint16(0x3F00) + uint16(palettId*4+pixel))
+		color = paletteColors[colorId]
+	}
+
+	//TODO fetch sprite pixel
+
+	ppu.screen.setDot(dotNum, lineNum, color)
 }

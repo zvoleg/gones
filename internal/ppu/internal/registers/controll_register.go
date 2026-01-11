@@ -72,9 +72,9 @@ func (r *ControllReg) getSpriteSize() int {
 	var size int
 	switch (r.value >> 5) & 0x1 {
 	case 0:
-		size = 8 * 8
+		size = 8
 	case 1:
-		size = 8 * 16
+		size = 16
 	}
 	return size
 }
@@ -93,4 +93,8 @@ func (r *ControllReg) GetBackgroundTable() uint16 {
 
 func (r *ControllReg) Incrementer() uint16 {
 	return r.incrementer
+}
+
+func (r *ControllReg) SpriteSize() uint16 {
+	return r.spriteSize
 }
