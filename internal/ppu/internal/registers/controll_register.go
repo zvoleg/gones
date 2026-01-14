@@ -91,6 +91,10 @@ func (r *ControllReg) GetBackgroundTable() uint16 {
 	return r.backgroundTable
 }
 
+func (r *ControllReg) GetSpriteTable() uint16 {
+	return r.spriteTable
+}
+
 func (r *ControllReg) Incrementer() uint16 {
 	return r.incrementer
 }

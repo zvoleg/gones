@@ -35,7 +35,6 @@ func NewDevice(programPath string) Device {
 }
 
 func (d *Device) Clock() {
-	d.ppu.Clock()
 	if d.clockCounter%3 == 0 {
 		if d.ppu.DmaEnable() {
 			d.dmaClock()
@@ -46,6 +45,7 @@ func (d *Device) Clock() {
 			d.cpu.Clock()
 		}
 	}
+	d.ppu.Clock()
 	d.clockCounter += 1
 }
 
@@ -63,6 +63,10 @@ func (d *Device) dmaClock() {
 			d.ppu.ResetDmaClockWaiter()
 		}
 	} else {
-		d.ppu.DmaClock()
+		if d.clockCounter%2 == 0 {
+			d.ppu.DmaClockRead()
+		} else {
+			d.ppu.DmaClockWrite()
+		}
 	}
 }

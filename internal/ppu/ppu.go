@@ -2,6 +2,7 @@ package ppu
 
 import (
 	"fmt"
+	"math/bits"
 	"math/rand"
 	"unsafe"
 
@@ -27,9 +28,9 @@ type Ppu struct {
 	nameTable  [0x0800]byte
 	paletteRam [0x0020]byte
 
-	oam                [0x40]ObjectAttributeEntity // sprites memory
-	nextLineOam        [0x08]ObjectAttributeEntity
-	curentLineOam      [0x08]ObjectAttributeEntity
+	oam                [0x40]objectAttributeEntity // sprites memory
+	nextLineOam        [0x08]objectAttributeEntity
+	curentLineOam      [0x08]objectAttributeEntity
 	oamCounter         int
 	nextLineOamCounter int
 
@@ -114,8 +115,10 @@ func (ppu *Ppu) Clock() {
 		if line == PreRender && (dotNum >= 280 && dotNum < 305) { // copy vertical position from tmp register
 			ppu.internalAddrReg.CopyVerticalPosition()
 		}
-		if line == Visible && dotNum < 256 {
+		if line == Visible && dotNum <= 257 {
 			ppu.spriteEvaluations(dotNum, lineNum)
+		}
+		if line == Visible && dotNum < 256 {
 			ppu.rendering(dotNum, lineNum)
 		}
 	} else {
@@ -260,6 +263,12 @@ func (ppu *Ppu) readSram(address byte) byte {
 	return *bytePtr
 }
 
+func (ppu *Ppu) readTileLine(table, tileId, tileLine uint16) (byte, byte) {
+	tileDataLow := ppu.readRam(table + tileId*16 + tileLine)
+	tileDataHigh := ppu.readRam(table + tileId*16 + 8 + tileLine)
+	return tileDataLow, tileDataHigh
+}
+
 func (ppu *Ppu) updatePlaneDataBuffer(dotNum int) {
 	switch dotNum % 8 {
 	case 0:
@@ -300,6 +309,17 @@ func (ppu *Ppu) updatePlaneDataBuffer(dotNum int) {
 	}
 }
 
+func (ppu *Ppu) checkCurrentLineOam(dotNum int) []objectAttributeEntity {
+	hitObjects := make([]objectAttributeEntity, 0, 8)
+	for i, entity := range ppu.curentLineOam {
+		xDiff := dotNum - int(entity.xCoordinate)
+		if xDiff >= 0 && xDiff < 8 {
+			hitObjects = append(hitObjects, ppu.curentLineOam[i])
+		}
+	}
+	return hitObjects
+}
+
 func (ppu *Ppu) backgroundPlaneProcess(dotNum, lineNum int) {
 	if (dotNum > 0 && dotNum < 256) || (dotNum >= 321 && dotNum < 337) {
 		ppu.shiftRegiseter.ScrollX(1)
@@ -321,21 +341,24 @@ func (ppu *Ppu) spriteEvaluations(dotNum, lineNum int) {
 			bytePtr := (*byte)(offset)
 			*bytePtr = 0xFF
 		}
-		if dotNum >= 65 && dotNum < 265 && ppu.oamCounter < 64 && ppu.nextLineOamCounter < 8 {
-			candidate := ppu.oam[ppu.oamCounter]
-			ppu.oamCounter += 1
-			yOffset := lineNum - int(candidate.yCoordinate)
-			if yOffset >= 0 && yOffset < int(ppu.controllReg.SpriteSize()) {
+	}
+	if dotNum >= 65 && dotNum < 257 && ppu.oamCounter < 64 && ppu.nextLineOamCounter < 9 {
+		candidate := ppu.oam[ppu.oamCounter]
+		ppu.oamCounter += 1
+		yOffset := lineNum + 1 - int(candidate.yCoordinate)
+		if yOffset >= 0 && yOffset < int(ppu.controllReg.SpriteSize()) {
+			if ppu.nextLineOamCounter < 8 {
 				ppu.nextLineOam[ppu.nextLineOamCounter] = candidate
-				ppu.nextLineOamCounter += 1
-			}
-			if ppu.nextLineOamCounter == 8 {
+			} else {
 				ppu.statusReg.SetStatusFlag(reg.O, true)
 			}
+			ppu.nextLineOamCounter += 1
 		}
-		if dotNum == 265 {
-			ppu.curentLineOam, ppu.nextLineOam = ppu.nextLineOam, ppu.curentLineOam
-		}
+	}
+	if dotNum == 257 {
+		ppu.curentLineOam, ppu.nextLineOam = ppu.nextLineOam, ppu.curentLineOam
+		ppu.oamCounter = 0
+		ppu.nextLineOamCounter = 0
 	}
 }
 
@@ -345,13 +368,46 @@ func (ppu *Ppu) rendering(dotNum, lineNum int) {
 	color := paletteColors[colorId]
 
 	// fetch plane pixel
-	pixel, palettId := ppu.shiftRegiseter.PopPixel()
-	if pixel != 0 {
-		colorId := ppu.readRam(uint16(0x3F00) + uint16(palettId*4+pixel))
-		color = paletteColors[colorId]
+	backgroundPixel := 0
+	if ppu.maskReg.LeftBackgroundEnabled() || dotNum >= 8 {
+		backgroundPixel, palettId := ppu.shiftRegiseter.PopPixel()
+		if backgroundPixel != 0 {
+			colorId := ppu.readRam(uint16(0x3F00) + uint16(palettId*4+backgroundPixel))
+			color = paletteColors[colorId]
+		}
 	}
 
-	//TODO fetch sprite pixel
+	// fetch sprite pixel
+	if ppu.maskReg.LeftSpritesEnabled() || dotNum >= 8 {
+		hitObjects := ppu.checkCurrentLineOam(dotNum)
+		spriteTable := ppu.controllReg.GetSpriteTable()
+		for _, entity := range hitObjects {
+			tileId := entity.tileId
+			tileLine := lineNum - int(entity.yCoordinate)
+			if entity.VerticalFlip() {
+				tileLine = 7 - tileLine
+			}
+			tileLow, tileHigh := ppu.readTileLine(spriteTable, uint16(tileId), uint16(tileLine))
+			if entity.HorizontalFlip() {
+				tileLow = bits.Reverse8(tileLow)
+				tileHigh = bits.Reverse8(tileHigh)
+			}
+
+			xOffset := dotNum - int(entity.xCoordinate)
+			spritePixel := ((tileHigh>>(7-byte(xOffset)))&0x1)<<1 | ((tileLow >> (7 - byte(xOffset))) & 0x1)
+			if spritePixel == 0 {
+				continue
+			}
+			if backgroundPixel != 0 && spritePixel != 0 {
+				ppu.statusReg.SetStatusFlag(reg.S, true)
+			}
+			if entity.BehindBackground() && backgroundPixel != 0 {
+				continue
+			}
+			colorId := ppu.readRam(uint16(0x3F00) + uint16(entity.Palette()*4+uint16(spritePixel)))
+			color = paletteColors[colorId]
+		}
+	}
 
 	ppu.screen.setDot(dotNum, lineNum, color)
 }
