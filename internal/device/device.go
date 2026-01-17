@@ -53,6 +53,10 @@ func (d *Device) GetImageProducer() ppu.ImageProducer {
 	return d.ppu
 }
 
+func (d *Device) GetSramReader() ppu.SramReader {
+	return d.ppu
+}
+
 func (d *Device) GetJoypadConnector() controller.Connector {
 	return d.joypad
 }

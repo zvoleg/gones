@@ -47,6 +47,15 @@ func main() {
 	go func() {
 		defer wg.Done()
 
+		server := ppu.NewSramReaderServer(device.GetSramReader())
+		http.Handle("/sram", websocket.Handler(server.Handler))
+		http.ListenAndServe(":3002", nil)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
 		http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, "web/index.html")

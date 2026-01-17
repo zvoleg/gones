@@ -32,7 +32,7 @@ func NewGuiServer(imageProducer ImageProducer) *GuiServer {
 }
 
 func (s *GuiServer) Handler(ws *websocket.Conn) {
-	fmt.Println("Connection with client: ", ws.RemoteAddr())
+	fmt.Println("Gui server: Connection with client: ", ws.RemoteAddr())
 	s.connectionHandler(ws)
 }
 

@@ -1,5 +1,7 @@
 package ppu
 
+import "fmt"
+
 type objectAttributeEntity struct {
 	yCoordinate byte
 	tileId      byte
@@ -30,4 +32,8 @@ func (o *objectAttributeEntity) SpriteTableAddress() uint16 {
 	} else {
 		return 0x1000
 	}
+}
+
+func (o *objectAttributeEntity) ToString() string {
+	return fmt.Sprintf("x: %03d y: %03d | tileId: %02X | attributes: %02X", o.xCoordinate, o.yCoordinate, o.tileId, o.attributes)
 }
