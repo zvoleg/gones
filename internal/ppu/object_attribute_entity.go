@@ -37,3 +37,10 @@ func (o *objectAttributeEntity) SpriteTableAddress() uint16 {
 func (o *objectAttributeEntity) ToString() string {
 	return fmt.Sprintf("x: %03d y: %03d | tileId: %02X | attributes: %02X", o.xCoordinate, o.yCoordinate, o.tileId, o.attributes)
 }
+
+func (o *objectAttributeEntity) toDefault() {
+	o.yCoordinate = 0xFF
+	o.tileId = 0xFF
+	o.attributes = 0xFF
+	o.xCoordinate = 0xFF
+}

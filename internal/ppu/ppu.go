@@ -334,12 +334,9 @@ func (ppu *Ppu) backgroundPlaneProcess(dotNum, lineNum int) {
 }
 
 func (ppu *Ppu) spriteEvaluations(dotNum, lineNum int) {
-	if dotNum < 65 {
-		if dotNum%2 == 0 {
-			ptr := unsafe.Pointer(&ppu.nextLineOam[0])
-			offset := unsafe.Pointer(uintptr(ptr) + uintptr(dotNum/2))
-			bytePtr := (*byte)(offset)
-			*bytePtr = 0xFF
+	if dotNum == 1 {
+		for i := range 8 {
+			ppu.nextLineOam[i].toDefault()
 		}
 	}
 	if dotNum >= 65 && dotNum < 257 && ppu.oamCounter < 64 && ppu.nextLineOamCounter < 9 {
