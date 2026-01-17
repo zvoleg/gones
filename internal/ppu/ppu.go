@@ -334,7 +334,7 @@ func (ppu *Ppu) backgroundPlaneProcess(dotNum, lineNum int) {
 }
 
 func (ppu *Ppu) spriteEvaluations(dotNum, lineNum int) {
-	if dotNum == 1 {
+	if dotNum == 1 { // Just reset all enities for the next line
 		for i := range 8 {
 			ppu.nextLineOam[i].toDefault()
 		}
@@ -365,11 +365,11 @@ func (ppu *Ppu) rendering(dotNum, lineNum int) {
 	color := paletteColors[colorId]
 
 	// fetch plane pixel
-	backgroundPixel := 0
+	var backgroundPixel, paletteId byte
 	if ppu.maskReg.LeftBackgroundEnabled() || dotNum >= 8 {
-		backgroundPixel, palettId := ppu.shiftRegiseter.PopPixel()
+		backgroundPixel, paletteId = ppu.shiftRegiseter.PopPixel()
 		if backgroundPixel != 0 {
-			colorId := ppu.readRam(uint16(0x3F00) + uint16(palettId*4+backgroundPixel))
+			colorId := ppu.readRam(uint16(0x3F00) + uint16(paletteId*4+backgroundPixel))
 			color = paletteColors[colorId]
 		}
 	}
@@ -395,7 +395,7 @@ func (ppu *Ppu) rendering(dotNum, lineNum int) {
 			if spritePixel == 0 {
 				continue
 			}
-			if backgroundPixel != 0 && spritePixel != 0 {
+			if entity.samePosition(&ppu.oam[0]) && backgroundPixel != 0 && spritePixel != 0 {
 				ppu.statusReg.SetStatusFlag(reg.S, true)
 			}
 			if entity.BehindBackground() && backgroundPixel != 0 {

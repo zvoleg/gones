@@ -44,3 +44,7 @@ func (o *objectAttributeEntity) toDefault() {
 	o.attributes = 0xFF
 	o.xCoordinate = 0xFF
 }
+
+func (o *objectAttributeEntity) samePosition(entity *objectAttributeEntity) bool {
+	return o.xCoordinate == entity.xCoordinate && o.yCoordinate == entity.yCoordinate && o.tileId == entity.tileId
+}
