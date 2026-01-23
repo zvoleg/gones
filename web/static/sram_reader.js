@@ -16,7 +16,8 @@ sramSocket.onopen = () => {
 sramSocket.onmessage = (event) => {
     var sramEntity = sramEntities[sramCounter]
     sramEntity.firstChild.nodeValue = String(sramCounter).padStart(2, '0') + ": " + event.data;
-    if (sramEntity.firstChild.nodeValue.includes("y: 255")) {
+    var values = sramEntity.firstChild.nodeValue.match(/\d+/g)
+    if (values[2] >= 240) { // read y position and after the 240 line they are invisible
         sramEntity.style.backgroundColor = "Salmon"
     } else {
         sramEntity.style.backgroundColor = "PaleGreen"

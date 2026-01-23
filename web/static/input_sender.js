@@ -17,11 +17,6 @@ controllerSocket.onmessage = (event) => {
     data = new Uint8ClampedArray(event.data)
     if ((data[0] & 0x01) == 0x01) {
         value = 0
-        var buffer = new ArrayBuffer(1);
-        var view = new Int8Array(buffer);
-        view[0] = value;
-        controllerSocket.send(view);
-        return
     }
     var keys = Object.keys(pressedKeys);
     keys.forEach((key) => {
