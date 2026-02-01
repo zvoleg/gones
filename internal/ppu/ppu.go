@@ -110,7 +110,7 @@ func (ppu *Ppu) Clock() {
 
 	if ppu.maskReg.RenderingEnabled() {
 		if line == Visible || line == PreRender {
-			ppu.backgroundPlaneProcess(dotNum, lineNum)
+			ppu.backgroundPlaneProcess(dotNum)
 		}
 		if line == PreRender && (dotNum >= 280 && dotNum < 305) { // copy vertical position from tmp register
 			ppu.internalAddrReg.CopyVerticalPosition()
@@ -175,23 +175,28 @@ func (ppu *Ppu) readRam(address uint16) byte {
 	switch true {
 	case address <= 0x1FFF:
 		data = ppu.bus.PpuRead(address)
-	case address >= 0x2000 && address <= 0x3EFF:
+	case address >= 0x2000 && address <= 0x3000:
+		address = address & 0x0FFF
 		switch ppu.bus.GetMirroring() {
+		case Horisontal:
+			if address < 0x400 {
+				data = ppu.nameTable[address]
+			} else if address >= 0x400 && address < 0x800 {
+				data = ppu.nameTable[address&0x3FF]
+			} else if address >= 0x800 && address < 0xC00 {
+				data = ppu.nameTable[0x400+address&0x3FF]
+			} else if address >= 0xC00 && address < 0x1000 {
+				data = ppu.nameTable[0x400+address&0x3FF]
+			}
 		case Vertical:
-			address = address & 0x07FF
-			data = ppu.nameTable[address]
-		case Horizontal:
-			if address >= 0x2000 && address < 0x2400 {
-				data = ppu.nameTable[address&0x03FF]
-			}
-			if address >= 0x2800 && address < 0x2C00 {
-				data = ppu.nameTable[0x0400+(address&0x03FF)]
-			}
-			if address >= 0x2400 && address < 0x2800 {
-				data = ppu.nameTable[address&0x03FF]
-			}
-			if address >= 0x2C00 && address < 0x3000 {
-				data = ppu.nameTable[0x0400+(address&0x03FF)]
+			if address < 0x400 {
+				data = ppu.nameTable[address]
+			} else if address >= 0x400 && address < 0x800 {
+				data = ppu.nameTable[0x400+address&0x3FF]
+			} else if address >= 0x800 && address < 0xC00 {
+				data = ppu.nameTable[address&0x3FF]
+			} else if address >= 0xC00 && address < 0x1000 {
+				data = ppu.nameTable[0x400+address&0x3FF]
 			}
 		}
 	case address >= 0x3F00 && address <= 0x3FFF:
@@ -215,23 +220,28 @@ func (ppu *Ppu) writeRam(address uint16, data byte) {
 	switch true {
 	case address <= 0x1FFF:
 		ppu.bus.PpuWrite(address, data)
-	case address >= 0x2000 && address <= 0x3EFF:
+	case address >= 0x2000 && address <= 0x3000:
+		address = address & 0x0FFF
 		switch ppu.bus.GetMirroring() {
+		case Horisontal:
+			if address < 0x400 {
+				ppu.nameTable[address] = data
+			} else if address >= 0x400 && address < 0x800 {
+				ppu.nameTable[address&0x3FF] = data
+			} else if address >= 0x800 && address < 0xC00 {
+				ppu.nameTable[0x400+address&0x3FF] = data
+			} else if address >= 0xC00 && address < 0x1000 {
+				ppu.nameTable[0x400+address&0x3FF] = data
+			}
 		case Vertical:
-			address = address & 0x07FF
-			ppu.nameTable[address] = data
-		case Horizontal:
-			if address >= 0x2000 && address < 0x2400 {
-				ppu.nameTable[address&0x03FF] = data
-			}
-			if address >= 0x2800 && address < 0x2C00 {
-				ppu.nameTable[0x0400+(address&0x03FF)] = data
-			}
-			if address >= 0x2400 && address < 0x2800 {
-				ppu.nameTable[address&0x03FF] = data
-			}
-			if address >= 0x2C00 && address < 0x3000 {
-				ppu.nameTable[0x0400+(address&0x03FF)] = data
+			if address < 0x400 {
+				ppu.nameTable[address] = data
+			} else if address >= 0x400 && address < 0x800 {
+				ppu.nameTable[address] = data
+			} else if address >= 0x800 && address < 0xC00 {
+				ppu.nameTable[address&0x3FF] = data
+			} else if address >= 0xC00 && address < 0x1000 {
+				ppu.nameTable[0x400+address&0x3FF] = data
 			}
 		}
 	case address >= 0x3F00 && address <= 0x3FFF:
@@ -320,7 +330,7 @@ func (ppu *Ppu) checkCurrentLineOam(dotNum int) []objectAttributeEntity {
 	return hitObjects
 }
 
-func (ppu *Ppu) backgroundPlaneProcess(dotNum, lineNum int) {
+func (ppu *Ppu) backgroundPlaneProcess(dotNum int) {
 	if (dotNum > 0 && dotNum < 256) || (dotNum >= 321 && dotNum < 337) {
 		ppu.shiftRegiseter.ScrollX(1)
 		ppu.updatePlaneDataBuffer(dotNum)

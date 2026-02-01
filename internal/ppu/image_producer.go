@@ -19,38 +19,17 @@ func (ppu *Ppu) GetPatternTables() []byte {
 	return img.buff
 }
 
-func (ppu *Ppu) readPatternTable(img *image, table uint16) {
-	startX := 128 * table
-	x := startX
-	xOffset := startX
-	y := 0
-	yOffset := 0
-	startAddress := 0x1000 * table
-	for i := startAddress; i < startAddress+0x1000; i += 0x10 {
-		// tile line end
-		if i != startAddress && i%0x100 == 0 {
-			yOffset += 8
-			xOffset = startX
-			x = startX
-			y = yOffset
+func (ppu *Ppu) readPatternTable(img *image, table int) {
+	posX := 128 * table
+	posY := 0
+	startAddress := 0x1000 * uint16(table)
+	for tileAddress := startAddress; tileAddress < startAddress+0x1000; tileAddress += 0x10 {
+		ppu.drawTile(img, tileAddress, posX, posY)
+		posX += 8
+		if posX >= 128+128*table {
+			posX = 128 * table
+			posY += 8
 		}
-		for b := uint16(0); b < 8; b += 1 {
-			plane0 := ppu.readRam(i + b)
-			plane1 := ppu.readRam(i + b + 8)
-			for bit := 0; bit < 8; bit += 1 {
-				offset := 7 - bit
-				dotBits := ((plane1>>offset)<<1)&2 | (plane0>>offset)&1
-				d := ppu.getColor(4, dotBits)
-				img.setDot(int(x), y, d)
-				x += 1
-			}
-			y += 1
-			x = xOffset
-		}
-		// tile end
-		xOffset += 8
-		y = yOffset
-		x = xOffset
 	}
 }
 
@@ -58,36 +37,24 @@ func (ppu *Ppu) GetNameTable() []byte {
 	img := newImage(512, 512)
 	ppu.readNameTable(&img, 0)
 	ppu.readNameTable(&img, 1)
+	ppu.readNameTable(&img, 2)
+	ppu.readNameTable(&img, 3)
 	return img.buff
 }
 
 func (ppu *Ppu) readNameTable(img *image, table int) {
-	startX := 256 * table
-	startY := 0
-	startAddress := 0x400 * table
+	posX := 256 * (table % 2)
+	posY := 256 * (table / 2)
+	startAddress := 0x400*uint16(table) + 0x2000
+	pattenrsTableAddr := ppu.controllReg.GetBackgroundTable()
 	for i := startAddress; i < startAddress+0x400; i += 1 {
-		spiteId := uint16(ppu.nameTable[i])
-		x := startX
-		y := startY
-		for spriteByteNum := 0; spriteByteNum < 8; spriteByteNum += 1 {
-			spriteTable := ppu.controllReg.GetBackgroundTable()
-			spriteAddress := spriteTable + spiteId*0x10 + uint16(spriteByteNum)
-			plane0 := ppu.readRam(spriteAddress)
-			plane1 := ppu.readRam(spriteAddress + 8)
-			for bit := 0; bit < 8; bit += 1 {
-				offset := 7 - bit
-				dotBits := ((plane1>>offset)<<1)&2 | (plane0>>offset)&1
-				d := ppu.getColor(4, dotBits)
-				img.setDot(x, y, d)
-				x += 1
-			}
-			x = startX
-			y += 1
-		}
-		startX += 8
-		if startX >= 256+256*table {
-			startX = 256 * table
-			startY += 8
+		tileId := uint16(ppu.readRam(i))
+		tileAddress := pattenrsTableAddr + tileId*0x10
+		ppu.drawTile(img, tileAddress, posX, posY)
+		posX += 8
+		if posX >= 256+256*(table%2) {
+			posX = 256 * (table % 2)
+			posY += 8
 		}
 	}
 }
@@ -140,4 +107,18 @@ func (ppu *Ppu) getColor(paletteId byte, dotBits byte) color {
 		colorId = ppu.paletteRam[0]
 	}
 	return paletteColors[colorId]
+}
+
+func (ppu *Ppu) drawTile(img *image, tileAddress uint16, posX, posY int) {
+	for tileLineNum := 0; tileLineNum < 8; tileLineNum += 1 {
+		lineAddress := tileAddress + uint16(tileLineNum)
+		planeLow := ppu.readRam(lineAddress)
+		planeHigh := ppu.readRam(lineAddress + 8)
+		for dotNum := 0; dotNum < 8; dotNum += 1 {
+			offset := 7 - dotNum
+			dotBits := ((planeHigh>>offset)<<1)&2 | (planeLow>>offset)&1
+			d := ppu.getColor(4, dotBits)
+			img.setDot(posX+dotNum, posY+tileLineNum, d)
+		}
+	}
 }
