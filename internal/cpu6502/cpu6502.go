@@ -39,8 +39,11 @@ type Cpu6502 struct {
 func New(bus Bus6502) Cpu6502 {
 	cpu := Cpu6502{bus: bus}
 	cpu.reset()
-	// cpu.pc = 0xC000
 	return cpu
+}
+
+func (cpu *Cpu6502) SetPC(address uint16) {
+	cpu.pc = address
 }
 
 func (cpu *Cpu6502) Clock() {
@@ -53,8 +56,14 @@ func (cpu *Cpu6502) Clock() {
 		cpu.fetch(instr.am.size)
 		instr.am.exec(cpu)
 		instr.op.exec(cpu)
-		// fmt.Printf("a=%02X x=%02X Y=%02X st=%08b pc=%04X st_ptr=%02X | opcode=%02X ", cpu.a, cpu.x, cpu.y, cpu.status, opcodeAddr, cpu.s, cpu.opcode)
-		// fmt.Println(instr.disassebly(cpu.instrData))
+		// var data byte
+		// switch instr.am.name {
+		// case "ZP0", "ZPX", "ZPY", "ABS", "ABX", "ABY", "IDX", "IDY":
+		// 	if cpu.operatorAdr < 0x2000 || cpu.operatorAdr >= 0x4020 {
+		// 		data = cpu.bus.CpuRead(cpu.operatorAdr)
+		// 	}
+		// }
+		// log.Printf("a=%02X x=%02X Y=%02X st=%08b pc=%04X st_ptr=%02X | opcode=%02X %s", cpu.a, cpu.x, cpu.y, cpu.status, opcodeAddr, cpu.s, cpu.opcode, instr.disassebly(cpu.instrData, data))
 	} else {
 		cpu.clockCounter -= 1
 	}

@@ -3,9 +3,9 @@ package registers
 type Flag byte
 
 const (
-	O = 0x20
-	S = 0x40
-	V = 0x80
+	O = 0x20 // sprite overflow
+	S = 0x40 // sprite 0 hit
+	V = 0x80 // vblank
 )
 
 type StatusReg struct {

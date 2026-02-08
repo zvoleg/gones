@@ -25,9 +25,13 @@ func (am *addressingMode) exec(cpu *Cpu6502) {
 	am.handler(cpu)
 }
 
-func (am *addressingMode) dataRepresentation(data uint16) string {
+func (am *addressingMode) dataRepresentation(instrData uint16, data byte) string {
 	if am.size > 0 {
-		return fmt.Sprintf(am.dataFormate, data)
+		switch am.name {
+		case "ZP0", "ZPX", "ZPY", "ABS", "ABX", "ABY", "IDX", "IDY":
+			return fmt.Sprintf(am.dataFormate, instrData, data)
+		}
+		return fmt.Sprintf(am.dataFormate, instrData)
 	} else {
 		return am.dataFormate
 	}
@@ -49,8 +53,8 @@ func inst(opcode byte, op operation, am addressingMode, clocks uint) instruction
 	}
 }
 
-func (i *instruction) disassebly(data uint16) string {
-	return strings.Join([]string{i.op.name, i.am.dataRepresentation(data)}, " ")
+func (i *instruction) disassebly(instrData uint16, data byte) string {
+	return strings.Join([]string{i.op.name, i.am.dataRepresentation(instrData, data)}, " ")
 }
 
 var (
@@ -116,16 +120,16 @@ var (
 var (
 	ACC = addressingMode{"ACC", acc, 0, "A"}
 	IMM = addressingMode{"IMM", imm, 1, "#$%02X"}
-	ABS = addressingMode{"ABS", abs, 2, "$%04X"}
-	ZP0 = addressingMode{"ZP0", zp0, 1, "$%02X"}
-	ZPX = addressingMode{"ZPX", zpx, 1, "$%02X, X"}
-	ZPY = addressingMode{"ZPY", zpy, 1, "$%02X, Y"}
-	ABX = addressingMode{"ABX", abx, 2, "$%04X, X"}
-	ABY = addressingMode{"ABY", aby, 2, "$%04X, Y"}
+	ABS = addressingMode{"ABS", abs, 2, "$%04X (#%02X)"}
+	ZP0 = addressingMode{"ZP0", zp0, 1, "$%02X (#%02X)"}
+	ZPX = addressingMode{"ZPX", zpx, 1, "$%02X, X (#%02X)"}
+	ZPY = addressingMode{"ZPY", zpy, 1, "$%02X, Y (#%02X)"}
+	ABX = addressingMode{"ABX", abx, 2, "$%04X, X (#%02X)"}
+	ABY = addressingMode{"ABY", aby, 2, "$%04X, Y (#%02X)"}
 	IMP = addressingMode{"IMP", imp, 0, ""}
 	REL = addressingMode{"REL", rel, 1, "$%02X"}
-	IDX = addressingMode{"IDX", idx, 1, "($%02X, X)"}
-	IDY = addressingMode{"IDY", idy, 1, "($%02X), Y"}
+	IDX = addressingMode{"IDX", idx, 1, "($%02X, X) (#%02X)"}
+	IDY = addressingMode{"IDY", idy, 1, "($%02X), Y (#%02X)"}
 	IND = addressingMode{"IND", ind, 2, "($%04X)"}
 )
 

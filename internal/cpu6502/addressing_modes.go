@@ -4,7 +4,7 @@ func acc(cpu *Cpu6502) {
 }
 
 func imm(cpu *Cpu6502) {
-	// all data was readed by cpu fetchin instruction data
+	// all data was read by cpu fetching an instruction data
 	// but all instructions fetches data by their address
 	cpu.operatorAdr = cpu.pc - 1
 }
