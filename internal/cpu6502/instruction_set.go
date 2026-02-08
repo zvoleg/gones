@@ -5,15 +5,6 @@ const rolAcc byte = 0x2A
 const lsrAcc byte = 0x4A
 const rorAcc byte = 0x6A
 
-func add(a, b byte) (res byte, carry bool, overflow bool) {
-	sum := uint16(a) + uint16(b)
-
-	res = byte(sum)
-	carry = sum&0x100 != 0
-	overflow = (a&0x80 == b&0x80) && (res&0x80 != a&0x80)
-	return res, carry, overflow
-}
-
 func branchProcess(cpu *Cpu6502) {
 	cpu.clockCounter += 1
 	if cpu.operatorAdr&0xFF00 != cpu.pc&0xFF00 { // comparing the high order of bits
@@ -24,13 +15,18 @@ func branchProcess(cpu *Cpu6502) {
 
 func adc(cpu *Cpu6502) { // decimal mod is not implemented
 	operand := cpu.bus.CpuRead(cpu.operatorAdr)
-	sum, carrySum, overflSum := add(cpu.a, operand)
-	res, carryCarry, overflCarry := add(sum, cpu.getFlag(C))
-	cpu.a = res
-	cpu.setFlag(C, carrySum || carryCarry)
-	cpu.setFlag(V, overflSum || overflCarry)
-	cpu.setFlag(N, res&0x80 != 0)
-	cpu.setFlag(Z, res == 0)
+
+	carryFlag := cpu.getFlag(C)
+	res := uint16(cpu.a) + uint16(operand) + uint16(carryFlag)
+
+	carry := res&0xFF00 != 0
+	overflow := ^((cpu.a^operand)&0x80)&((cpu.a^byte(res))&0x80) != 0
+
+	cpu.a = byte(res)
+	cpu.setFlag(C, carry)
+	cpu.setFlag(V, overflow)
+	cpu.setFlag(N, cpu.a&0x80 != 0)
+	cpu.setFlag(Z, cpu.a == 0)
 }
 
 func and(cpu *Cpu6502) {
@@ -105,16 +101,17 @@ func bpl(cpu *Cpu6502) {
 }
 
 func brk(cpu *Cpu6502) {
-	pcH := byte(cpu.pc >> 8)
+	returnAddr := cpu.pc + 1
+	pcH := byte(returnAddr >> 8)
 	cpu.push(pcH)
-	pcL := byte(cpu.pc)
+	pcL := byte(returnAddr)
 	cpu.push(pcL)
-	cpu.setFlag(I, true)
 	cpu.setFlag(B, true)
 	cpu.push(cpu.status)
 
 	pcL = cpu.bus.CpuRead(irqVector)
 	pcH = cpu.bus.CpuRead(irqVector + 1)
+	cpu.setFlag(I, true)
 	cpu.pc = uint16(pcH)<<8 | uint16(pcL)
 }
 
@@ -359,10 +356,20 @@ func rts(cpu *Cpu6502) {
 
 func sbc(cpu *Cpu6502) {
 	operand := cpu.bus.CpuRead(cpu.operatorAdr)
-	sub := ^operand + cpu.getFlag(C)
-	res, _, overflow := add(cpu.a, sub)
+
+	carryFlag := cpu.getFlag(C)
+	res := cpu.a - operand - 1 + carryFlag
+
+	overflow := ((cpu.a ^ operand) & 0x80 & (cpu.a ^ res) & 0x80) != 0
+	var carry bool
+	if carryFlag == 0 {
+		carry = cpu.a > operand
+	} else {
+		carry = cpu.a >= operand
+	}
+
 	cpu.a = res
-	cpu.setFlag(C, int8(res) >= 0)
+	cpu.setFlag(C, carry)
 	cpu.setFlag(V, overflow)
 	cpu.setFlag(N, res&0x80 != 0)
 	cpu.setFlag(Z, res == 0)
