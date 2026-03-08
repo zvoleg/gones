@@ -60,6 +60,7 @@ func main() {
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, "web/index.html")
 		})
+		http.HandleFunc("/player", device.HandlePlayerComands)
 		http.ListenAndServe(":8081", nil)
 	}()
 

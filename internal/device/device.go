@@ -13,6 +13,8 @@ type Device struct {
 	ppu    *ppu.Ppu
 	joypad *controller.Joypad
 
+	isRun bool
+
 	dmaClcokWaiter bool
 	clockCounter   uint64
 }
@@ -35,18 +37,20 @@ func NewDevice(programPath string) Device {
 }
 
 func (d *Device) Clock() {
-	if d.clockCounter%3 == 0 {
-		if d.ppu.DmaEnable() {
-			d.dmaClock()
-		} else {
-			if d.ppu.InterruptSignal() {
-				d.cpu.Interrupt(cpu6502.Nmi)
+	if d.isRun {
+		if d.clockCounter%3 == 0 {
+			if d.ppu.DmaEnable() {
+				d.dmaClock()
+			} else {
+				if d.ppu.InterruptSignal() {
+					d.cpu.Interrupt(cpu6502.Nmi)
+				}
+				d.cpu.Clock()
 			}
-			d.cpu.Clock()
 		}
+		d.ppu.Clock()
+		d.clockCounter += 1
 	}
-	d.ppu.Clock()
-	d.clockCounter += 1
 }
 
 func (d *Device) GetImageProducer() ppu.ImageProducer {

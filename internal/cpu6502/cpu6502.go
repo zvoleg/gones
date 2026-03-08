@@ -38,7 +38,7 @@ type Cpu6502 struct {
 
 func New(bus Bus6502) Cpu6502 {
 	cpu := Cpu6502{bus: bus}
-	cpu.reset()
+	cpu.Reset()
 	return cpu
 }
 
@@ -69,7 +69,7 @@ func (cpu *Cpu6502) Clock() {
 	}
 }
 
-func (cpu *Cpu6502) reset() {
+func (cpu *Cpu6502) Reset() {
 	cpu.s = 0xFD // stack pointer decrements by 2
 	pcL := cpu.bus.CpuRead(resVector)
 	pcH := cpu.bus.CpuRead(resVector + 1)
