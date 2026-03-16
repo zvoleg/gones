@@ -36,14 +36,13 @@ func (j *Joypad) IsClosed() bool {
 }
 
 func (j *Joypad) SendByte(data byte) {
-	if j.ws == nil || data == 0 {
+	if j.closed || data == 0 {
 		return
 	}
 	_, err := j.ws.Write([]byte{data})
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println("InputInterface: Can't write message to client")
-		j.ws.Close()
 		j.closed = true
 		return
 	}
@@ -51,7 +50,6 @@ func (j *Joypad) SendByte(data byte) {
 	_, err = j.ws.Read(buffer)
 	if err != nil {
 		fmt.Println("InputInterface: Can't read message from client")
-		j.ws.Close()
 		j.closed = true
 		return
 	}

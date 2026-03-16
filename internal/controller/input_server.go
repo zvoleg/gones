@@ -16,6 +16,8 @@ func NewControllerServer(c Connector) *ControllerServer {
 
 func (s *ControllerServer) Handler(ws *websocket.Conn) {
 	fmt.Println("ControllerServer: Connection with client: ", ws.RemoteAddr())
+	defer ws.Close()
+
 	ws.PayloadType = websocket.BinaryFrame
 	s.connector.SetConnection(ws)
 	for !s.connector.IsClosed() {

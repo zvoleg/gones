@@ -13,18 +13,17 @@ func (ppu *Ppu) GetMainScreen() []byte {
 }
 
 func (ppu *Ppu) GetPatternTables() []byte {
-	img := newImage(256, 128)
-	ppu.readPatternTable(&img, 0)
-	ppu.readPatternTable(&img, 1)
-	return img.buff
+	ppu.readPatternTable(0)
+	ppu.readPatternTable(1)
+	return ppu.patternTablesImg.buff
 }
 
-func (ppu *Ppu) readPatternTable(img *image, table int) {
+func (ppu *Ppu) readPatternTable(table int) {
 	posX := 128 * table
 	posY := 0
 	startAddress := 0x1000 * uint16(table)
 	for tileAddress := startAddress; tileAddress < startAddress+0x1000; tileAddress += 0x10 {
-		ppu.drawTile(img, tileAddress, posX, posY)
+		ppu.drawTile(&ppu.patternTablesImg, tileAddress, posX, posY)
 		posX += 8
 		if posX >= 128+128*table {
 			posX = 128 * table
@@ -34,15 +33,14 @@ func (ppu *Ppu) readPatternTable(img *image, table int) {
 }
 
 func (ppu *Ppu) GetNameTable() []byte {
-	img := newImage(512, 512)
-	ppu.readNameTable(&img, 0)
-	ppu.readNameTable(&img, 1)
-	ppu.readNameTable(&img, 2)
-	ppu.readNameTable(&img, 3)
-	return img.buff
+	ppu.readNameTable(0)
+	ppu.readNameTable(1)
+	ppu.readNameTable(2)
+	ppu.readNameTable(3)
+	return ppu.nameTablesImg.buff
 }
 
-func (ppu *Ppu) readNameTable(img *image, table int) {
+func (ppu *Ppu) readNameTable(table int) {
 	posX := 256 * (table % 2)
 	posY := 256 * (table / 2)
 	startAddress := 0x400*uint16(table) + 0x2000
@@ -50,7 +48,7 @@ func (ppu *Ppu) readNameTable(img *image, table int) {
 	for i := startAddress; i < startAddress+0x400; i += 1 {
 		tileId := uint16(ppu.readRam(i))
 		tileAddress := pattenrsTableAddr + tileId*0x10
-		ppu.drawTile(img, tileAddress, posX, posY)
+		ppu.drawTile(&ppu.nameTablesImg, tileAddress, posX, posY)
 		posX += 8
 		if posX >= 256+256*(table%2) {
 			posX = 256 * (table % 2)
@@ -60,11 +58,10 @@ func (ppu *Ppu) readNameTable(img *image, table int) {
 }
 
 func (ppu *Ppu) GetColorPalette() []byte {
-	img := newImage(9, 5)
 	x := 0
 	y := 0
 	color := ppu.getColor(0, 0)
-	img.setDot(x, y, color)
+	ppu.colorPaletteImg.setDot(x, y, color)
 	y += 1
 	for paletteId := 0; paletteId < 4; paletteId += 1 {
 		for colorId := 0; colorId < 4; colorId += 1 {
@@ -72,7 +69,7 @@ func (ppu *Ppu) GetColorPalette() []byte {
 				continue
 			}
 			color = ppu.getColor(byte(paletteId), byte(colorId))
-			img.setDot(x, y, color)
+			ppu.colorPaletteImg.setDot(x, y, color)
 			x += 1
 			if x == 4 {
 				x = 0
@@ -88,7 +85,7 @@ func (ppu *Ppu) GetColorPalette() []byte {
 				continue
 			}
 			color = ppu.getColor(byte(paletteId), byte(colorId))
-			img.setDot(x, y, color)
+			ppu.colorPaletteImg.setDot(x, y, color)
 			x += 1
 			if x == 9 {
 				x = 5
@@ -96,7 +93,7 @@ func (ppu *Ppu) GetColorPalette() []byte {
 			}
 		}
 	}
-	return img.buff
+	return ppu.colorPaletteImg.buff
 }
 
 func (ppu *Ppu) getColor(paletteId byte, dotBits byte) color {

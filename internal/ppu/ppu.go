@@ -34,7 +34,10 @@ type Ppu struct {
 	oamCounter         int
 	nextLineOamCounter int
 
-	screen image // screen size 256x240, 4 byte per pixel (RGBA)
+	screen           image // screen size 256x240, 4 byte per pixel (RGBA)
+	patternTablesImg image
+	nameTablesImg    image
+	colorPaletteImg  image
 
 	planeDataBuffer planeDataBuffer
 	shiftRegiseter  reg.ShiftRegiseter
@@ -68,7 +71,10 @@ func NewPpu() Ppu {
 	internalAddrReg := reg.InternalAddrReg{}
 
 	return Ppu{
-		screen: newImage(256, 240),
+		screen:           newImage(256, 240),
+		patternTablesImg: newImage(256, 128),
+		nameTablesImg:    newImage(512, 512),
+		colorPaletteImg:  newImage(9, 5),
 
 		controllReg:     &controllReg,
 		maskReg:         &maskReg,

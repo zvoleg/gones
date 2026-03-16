@@ -14,7 +14,7 @@ const (
 	nameTable   = "nameTable"
 )
 
-const FRAME_DURATION = time.Duration(16666666) // 1 / 60 sec to nanosec
+const FRAME_DURATION = time.Millisecond * 16 // 1 / 60 sec to nanosec
 
 type ImageProducer interface {
 	GetMainScreen() []byte
@@ -32,11 +32,19 @@ func NewGuiServer(imageProducer ImageProducer) *GuiServer {
 }
 
 func (s *GuiServer) Handler(ws *websocket.Conn) {
-	fmt.Println("Gui server: Connection with client: ", ws.RemoteAddr())
-	s.connectionHandler(ws)
+	fmt.Println("Gui server: Connection with client: ", ws.LocalAddr())
+	ticker := time.NewTicker(FRAME_DURATION)
+
+	defer func() {
+		fmt.Println("Gui server: Connection closed for client: ", ws.LocalAddr())
+		ws.Close()
+	}()
+	defer ticker.Stop()
+
+	s.connectionHandler(ws, ticker)
 }
 
-func (s *GuiServer) connectionHandler(ws *websocket.Conn) {
+func (s *GuiServer) connectionHandler(ws *websocket.Conn, ticker *time.Ticker) {
 	buffer := make([]byte, 64)
 	n, err := ws.Read(buffer)
 	if err != nil {
@@ -46,81 +54,29 @@ func (s *GuiServer) connectionHandler(ws *websocket.Conn) {
 	guiPart := string(buffer[:n])
 	switch guiPart {
 	case frame:
-		s.frameSender(ws)
+		writeToSocket(ws, ticker, s.imageProducer.GetMainScreen)
 	case palette:
-		s.paletteSender(ws)
+		writeToSocket(ws, ticker, s.imageProducer.GetColorPalette)
 	case patterTable:
-		s.patternTableSender(ws)
+		writeToSocket(ws, ticker, s.imageProducer.GetPatternTables)
 	case nameTable:
-		s.nameTableSender(ws)
+		writeToSocket(ws, ticker, s.imageProducer.GetNameTable)
 	}
 }
 
-func (s *GuiServer) frameSender(ws *websocket.Conn) {
-	imgBuf := s.imageProducer.GetMainScreen()
-	now := time.Now()
+func writeToSocket(ws *websocket.Conn, ticker *time.Ticker, imgGeter func() []byte) {
 	for {
-		elapsed := time.Now()
-		if elapsed.Sub(now) > FRAME_DURATION {
-			// TODO rendering by signal from ppu (frame_done) and sync with time 1/60 sec
-			_, err := ws.Write(imgBuf)
+		select {
+		case <-ticker.C:
+			ws.SetWriteDeadline(time.Now().Add(time.Second * 1))
+			buffer := imgGeter()
+			_, err := ws.Write(buffer)
 			if err != nil {
 				fmt.Println(err)
-				ws.Close()
 				return
 			}
-			now = elapsed
-		}
-	}
-}
-
-func (s *GuiServer) paletteSender(ws *websocket.Conn) {
-	now := time.Now()
-	for {
-		elapsed := time.Now()
-		if elapsed.Sub(now) > FRAME_DURATION {
-			srcImg := s.imageProducer.GetColorPalette()
-			_, err := ws.Write(srcImg)
-			if err != nil {
-				fmt.Println(err)
-				ws.Close()
-				return
-			}
-			now = elapsed
-		}
-	}
-}
-
-func (s *GuiServer) patternTableSender(ws *websocket.Conn) {
-	now := time.Now()
-	for {
-		elapsed := time.Now()
-		if elapsed.Sub(now) > FRAME_DURATION {
-			srcImg := s.imageProducer.GetPatternTables()
-			_, err := ws.Write(srcImg)
-			if err != nil {
-				fmt.Println(err)
-				ws.Close()
-				return
-			}
-			now = elapsed
-		}
-	}
-}
-
-func (s *GuiServer) nameTableSender(ws *websocket.Conn) {
-	now := time.Now()
-	for {
-		elapsed := time.Now()
-		if elapsed.Sub(now) > FRAME_DURATION {
-			srcImg := s.imageProducer.GetNameTable()
-			_, err := ws.Write(srcImg)
-			if err != nil {
-				fmt.Println(err)
-				ws.Close()
-				return
-			}
-			now = elapsed
+		case <-ws.Request().Context().Done():
+			return
 		}
 	}
 }
