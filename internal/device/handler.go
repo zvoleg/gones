@@ -8,8 +8,15 @@ import (
 	"net/http"
 )
 
+type ComandType string
+
+const (
+	PlayPause ComandType = "playPause"
+	Reset     ComandType = "reset"
+)
+
 type Comand struct {
-	Comand string `json:"comand"`
+	Comand ComandType `json:"comand"`
 }
 
 func (d *Device) HandlePlayerComands(w http.ResponseWriter, r *http.Request) {
@@ -32,12 +39,12 @@ func (d *Device) HandlePlayerComands(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch comand.Comand {
-	case "playPause":
+	case PlayPause:
 		d.isRun = !d.isRun
-	case "reset":
+	case Reset:
 		d.cpu.Reset()
 	}
 
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "{}")
+	fmt.Fprintf(w, "{\"playing\": %v}", d.isRun)
 }

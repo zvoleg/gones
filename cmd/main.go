@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/zvoleg/gones/internal/apu"
 	"github.com/zvoleg/gones/internal/controller"
 	"github.com/zvoleg/gones/internal/device"
 	"github.com/zvoleg/gones/internal/ppu"
@@ -50,6 +51,15 @@ func main() {
 		server := ppu.NewSramReaderServer(device.GetSramReader())
 		http.Handle("/sram", websocket.Handler(server.Handler))
 		http.ListenAndServe(":3002", nil)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		server := apu.NewApuServer()
+		http.Handle("/audio", websocket.Handler(server.Handler))
+		http.ListenAndServe(":3011", nil)
 	}()
 
 	wg.Add(1)

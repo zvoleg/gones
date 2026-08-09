@@ -1,11 +1,19 @@
-var frameSocket = new WebSocket("ws://localhost:3000/frame");
+let frameSocket = new WebSocket("ws://localhost:3000/frame");
 frameSocket.binaryType = "arraybuffer";
-var paletteSocket = new WebSocket("ws://localhost:3000/palette");
+let paletteSocket = new WebSocket("ws://localhost:3000/palette");
 paletteSocket.binaryType = "arraybuffer";
-var patternSocket = new WebSocket("ws://localhost:3000/pattern");
+let patternSocket = new WebSocket("ws://localhost:3000/pattern");
 patternSocket.binaryType = "arraybuffer";
-var nameTableSocket = new WebSocket("ws://localhost:3000/name");
+let nameTableSocket = new WebSocket("ws://localhost:3000/name");
 nameTableSocket.binaryType = "arraybuffer";
+
+window.addEventListener("beforeunload", function() {
+  console.log("Page reload");
+  frameSocket.close(1000, "page reload");
+  paletteSocket.close(1000, "page reload");
+  patternSocket.close(1000, "page reload");
+  nameTableSocket.close(1000, "page reload");
+});
 
 setupSocketAndCanvas(frameSocket, "frame", 256, 240, 3)
 setupSocketAndCanvas(paletteSocket, "palette", 9, 5, 20)

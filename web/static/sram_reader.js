@@ -1,11 +1,15 @@
-var sramSocket = new WebSocket("ws://localhost:3002/sram")
-var sramCounter = 0
-var sramEntities = null
+let sramSocket = new WebSocket("ws://localhost:3002/sram")
+let sramCounter = 0
+let sramEntities = null
+
+window.addEventListener("beforeunload", function() {
+    controllerSocket.close(1000, "Page reload");
+});
 
 sramSocket.onopen = () => {
-    var sramBox = document.getElementsByClassName("sram")[0];
+    let sramBox = document.getElementsByClassName("sram")[0];
     for (i = 0; i < 64; i++) {
-        var sramEntity = document.createElement("p");
+        let sramEntity = document.createElement("p");
         sramEntity.setAttribute("style", "margin: 0; padding: 0; font-size: 12px; font-family: monospace;");
         sramEntity.appendChild(document.createTextNode(""));
         sramBox.appendChild(sramEntity);
@@ -14,9 +18,9 @@ sramSocket.onopen = () => {
 }
 
 sramSocket.onmessage = (event) => {
-    var sramEntity = sramEntities[sramCounter]
+    let sramEntity = sramEntities[sramCounter]
     sramEntity.firstChild.nodeValue = String(sramCounter).padStart(2, '0') + ": " + event.data;
-    var values = sramEntity.firstChild.nodeValue.match(/\d+/g)
+    let values = sramEntity.firstChild.nodeValue.match(/\d+/g)
     if (values[2] >= 240) { // read y position and after the 240 line they are invisible
         sramEntity.style.backgroundColor = "Salmon"
     } else {
